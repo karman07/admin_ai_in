@@ -20,6 +20,7 @@ import {
     IndianRupee,
     CheckCircle2,
     XCircle,
+    Cpu,
 } from 'lucide-react';
 import {
     AreaChart,
@@ -154,16 +155,19 @@ function CustomTooltip({ active, payload, label }: any) {
 export default function DashboardPage() {
     const [data, setData] = useState<DashboardData | null>(null);
     const [paymentData, setPaymentData] = useState<any>(null);
+    const [aiUsageData, setAiUsageData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         Promise.all([
             analyticsApi.getDashboardStats(),
             paymentsApi.getAnalytics().catch(() => null),
+            analyticsApi.getAIUsageStats().catch(() => null),
         ])
-            .then(([dashData, pmtData]) => {
+            .then(([dashData, pmtData, aiData]) => {
                 setData(dashData);
                 setPaymentData(pmtData);
+                setAiUsageData(aiData);
             })
             .catch(console.error)
             .finally(() => setLoading(false));

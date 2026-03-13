@@ -14,6 +14,7 @@ import {
     ChevronLeft,
     ChevronRight,
     FileText,
+    Cpu,
     Ticket
 } from 'lucide-react';
 
@@ -28,6 +29,7 @@ export type Page =
     | 'lessons'
     | 'quizzes'
     | 'resources'
+    | 'ai-usage';
     | 'discounts';
 
 const navItems: { id: Page; label: string; icon: React.ReactNode; group: string }[] = [
@@ -42,6 +44,7 @@ const navItems: { id: Page; label: string; icon: React.ReactNode; group: string 
     { id: 'lessons', label: 'Lessons', icon: <GraduationCap size={18} />, group: 'Content' },
     { id: 'quizzes', label: 'Quizzes', icon: <HelpCircle size={18} />, group: 'Content' },
     { id: 'resources', label: 'Resources', icon: <FileText size={18} />, group: 'Content' },
+    { id: 'ai-usage', label: 'AI Usage', icon: <Cpu size={18} />, group: 'Overview' },
 ];
 
 export default function Sidebar({
