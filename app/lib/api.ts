@@ -176,3 +176,21 @@ export const discountsApi = {
     delete: (id: string) => fetchApi(`discounts/admin/coupons/${id}`, { method: 'DELETE' }),
     generateReferral: (data: any) => fetchApi('discounts/admin/coupons/generate-referral', { method: 'POST', body: JSON.stringify(data) }),
 };
+
+// Reviews (Admin)
+export const reviewsApi = {
+    getStats: () => fetchApi('reviews/admin/stats'),
+    getAll: (params?: { page?: number; limit?: number; rating?: number; flag?: string; search?: string }) => {
+        const q = new URLSearchParams();
+        if (params?.page)   q.append('page',   String(params.page));
+        if (params?.limit)  q.append('limit',  String(params.limit));
+        if (params?.rating) q.append('rating', String(params.rating));
+        if (params?.flag)   q.append('flag',   params.flag);
+        if (params?.search) q.append('search', params.search);
+        const qs = q.toString();
+        return fetchApi(`reviews/admin/all${qs ? `?${qs}` : ''}`);
+    },
+    flag: (id: string, flag: string) => fetchApi(`reviews/admin/${id}/flag`, { method: 'PATCH', body: JSON.stringify({ flag }) }),
+    pin: (id: string, isPinned: boolean) => fetchApi(`reviews/admin/${id}/pin`, { method: 'PATCH', body: JSON.stringify({ isPinned }) }),
+    delete: (id: string) => fetchApi(`reviews/admin/${id}`, { method: 'DELETE' }),
+};

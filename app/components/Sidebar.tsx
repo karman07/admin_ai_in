@@ -15,7 +15,8 @@ import {
     ChevronRight,
     FileText,
     Cpu,
-    Ticket
+    Ticket,
+    Star
 } from 'lucide-react';
 
 export type Page =
@@ -30,7 +31,8 @@ export type Page =
     | 'quizzes'
     | 'resources'
     | 'ai-usage'
-    | 'discounts';
+    | 'discounts'
+    | 'reviews';
 
 const navItems: { id: Page; label: string; icon: React.ReactNode; group: string }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} />, group: 'Overview' },
@@ -40,6 +42,7 @@ const navItems: { id: Page; label: string; icon: React.ReactNode; group: string 
     { id: 'subscriptions', label: 'Subscriptions', icon: <CreditCard size={18} />, group: 'Management' },
     { id: 'payments', label: 'Payments', icon: <CreditCard size={18} />, group: 'Management' },
     { id: 'discounts', label: 'Discounts', icon: <Ticket size={18} />, group: 'Management' },
+    { id: 'reviews',   label: 'Reviews',   icon: <Star size={18} />,   group: 'Management' },
     { id: 'subjects', label: 'Subjects', icon: <BookOpen size={18} />, group: 'Content' },
     { id: 'lessons', label: 'Lessons', icon: <GraduationCap size={18} />, group: 'Content' },
     { id: 'quizzes', label: 'Quizzes', icon: <HelpCircle size={18} />, group: 'Content' },
