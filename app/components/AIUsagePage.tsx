@@ -229,7 +229,7 @@ export default function AIUsagePage() {
                                     </Pie>
                                     <RechartsTooltip
                                         contentStyle={{ background: '#111928', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 13 }}
-                                        formatter={(value: number) => value.toLocaleString()}
+                                        formatter={(value) => (typeof value === 'number' ? value.toLocaleString() : String(value ?? ''))}
                                     />
                                 </PieChart>
                             </ResponsiveContainer>
