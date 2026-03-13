@@ -6,9 +6,9 @@ import {
     Hash, AlertTriangle, Zap, TrendingUp, Gift,
     ShieldCheck, Clock, ChevronRight, Eye, Sparkles,
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { discountsApi } from '../lib/api';
 
+/* ── types ──────────────────────────────────────────────────────────── */
 interface Coupon {
     _id: string; code: string; type: 'discount' | 'referral';
     discountType: 'percentage' | 'fixed'; discountValue: number;
@@ -34,31 +34,35 @@ interface FormState {
     referrerId: string; referrerRewardAmount: number; description: string;
 }
 
+/* ── helpers ─────────────────────────────────────────────────────────── */
 const EMPTY: FormState = {
     code: '', type: 'discount', discountType: 'percentage', discountValue: 10,
     maxDiscountAmount: '', minOrderAmount: '', maxUses: '', isActive: true,
     expiresAt: '', referrerId: '', referrerRewardAmount: 0, description: '',
 };
-
 const fmt = (p: number) => `\u20b9${(p / 100).toLocaleString('en-IN')}`;
-const expired = (c: Coupon) => !!c.expiresAt && new Date(c.expiresAt) < new Date();
+const isExpired = (c: Coupon) => !!c.expiresAt && new Date(c.expiresAt) < new Date();
 
-const LBL = ({ t }: { t: string }) => (
-    <label style={{ display: 'block', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted-foreground)', marginBottom: 6 }}>{t}</label>
+const Row = ({ label, children }: { label: string; children: React.ReactNode }) => (
+    <div>
+        <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--muted-foreground)', marginBottom: 6 }}>{label}</div>
+        {children}
+    </div>
 );
 
+/* ═══════════════════════════════════════════════════════════════════════ */
 export default function DiscountsPage() {
-    const [coupons, setCoupons] = useState<Coupon[]>([]);
-    const [analytics, setAnalytics] = useState<Analytics | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [showModal, setShowModal] = useState(false);
-    const [editId, setEditId] = useState<string | null>(null);
-    const [form, setForm] = useState<FormState>({ ...EMPTY });
-    const [saving, setSaving] = useState(false);
-    const [statsModal, setStatsModal] = useState<CouponStats | null>(null);
+    const [coupons, setCoupons]           = useState<Coupon[]>([]);
+    const [analytics, setAnalytics]       = useState<Analytics | null>(null);
+    const [loading, setLoading]           = useState(true);
+    const [showModal, setShowModal]       = useState(false);
+    const [editId, setEditId]             = useState<string | null>(null);
+    const [form, setForm]                 = useState<FormState>({ ...EMPTY });
+    const [saving, setSaving]             = useState(false);
+    const [statsModal, setStatsModal]     = useState<CouponStats | null>(null);
     const [loadingStats, setLoadingStats] = useState(false);
-    const [copied, setCopied] = useState<string | null>(null);
-    const [filter, setFilter] = useState<'all' | 'discount' | 'referral'>('all');
+    const [copied, setCopied]             = useState<string | null>(null);
+    const [filter, setFilter]             = useState<'all' | 'discount' | 'referral'>('all');
 
     const load = async () => {
         setLoading(true);
@@ -74,7 +78,7 @@ export default function DiscountsPage() {
         setForm({
             code: c.code, type: c.type, discountType: c.discountType, discountValue: c.discountValue,
             maxDiscountAmount: c.maxDiscountAmount ? String(c.maxDiscountAmount / 100) : '',
-            minOrderAmount: c.minOrderAmount ? String(c.minOrderAmount / 100) : '',
+            minOrderAmount:    c.minOrderAmount    ? String(c.minOrderAmount    / 100) : '',
             maxUses: c.maxUses != null ? String(c.maxUses) : '', isActive: c.isActive,
             expiresAt: c.expiresAt ? c.expiresAt.substring(0, 10) : '',
             referrerId: (c.referrerId as any)?._id || '', referrerRewardAmount: 0, description: c.description || '',
@@ -89,18 +93,18 @@ export default function DiscountsPage() {
         setSaving(true);
         try {
             const p: any = { code: form.code.toUpperCase(), type: form.type, discountType: form.discountType, discountValue: Number(form.discountValue), isActive: form.isActive };
-            if (form.description) p.description = form.description;
-            if (form.maxDiscountAmount) p.maxDiscountAmount = Math.round(Number(form.maxDiscountAmount) * 100);
-            if (form.minOrderAmount) p.minOrderAmount = Math.round(Number(form.minOrderAmount) * 100);
-            if (form.maxUses) p.maxUses = Number(form.maxUses);
-            if (form.expiresAt) p.expiresAt = form.expiresAt;
-            if (form.referrerId) p.referrerId = form.referrerId;
+            if (form.description)       p.description       = form.description;
+            if (form.maxDiscountAmount) p.maxDiscountAmount  = Math.round(Number(form.maxDiscountAmount) * 100);
+            if (form.minOrderAmount)    p.minOrderAmount     = Math.round(Number(form.minOrderAmount)    * 100);
+            if (form.maxUses)           p.maxUses            = Number(form.maxUses);
+            if (form.expiresAt)         p.expiresAt          = form.expiresAt;
+            if (form.referrerId)        p.referrerId         = form.referrerId;
             editId ? await discountsApi.update(editId, p) : await discountsApi.create(p);
             setShowModal(false); await load();
         } catch (e: any) { alert(e.message || 'Failed'); } finally { setSaving(false); }
     };
     const toggle = async (id: string) => { try { await discountsApi.toggle(id); await load(); } catch (e) { console.error(e); } };
-    const del = async (id: string) => {
+    const del    = async (id: string) => {
         if (!confirm('Delete this coupon?')) return;
         try { await discountsApi.delete(id); await load(); } catch (e: any) { alert(e.message); }
     };
@@ -108,255 +112,244 @@ export default function DiscountsPage() {
 
     const list = coupons.filter(c => filter === 'all' || c.type === filter);
 
-    return (
-        <div style={{ padding: '28px 24px 32px', width: '100%', boxSizing: 'border-box' }}>
+    /* ── colour tokens (all resolved via CSS vars — no Tailwind colour classes) */
+    const PRIMARY  = 'var(--primary)';
+    const ACCENT   = 'var(--accent)';
+    const SUCCESS  = 'var(--success)';
+    const WARNING  = 'var(--warning)';
+    const DANGER   = 'var(--danger)';
+    const FG       = 'var(--foreground)';
+    const MFG      = 'var(--muted-foreground)';
+    const BORDER   = 'var(--card-border)';
 
-            {/* ── Header ── */}
-            <div className="flex items-center justify-between mb-6 animate-fadeIn">
-                <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20 shrink-0">
-                        <Tag size={22} color="white" />
+    /* ── stat config ── */
+    const stats = analytics ? [
+        { label: 'Total Coupons',  val: analytics.totalCoupons,              sub: `${analytics.activeCoupons} active`, color: 'purple', icon: <Tag size={18} /> },
+        { label: 'Total Uses',     val: analytics.totalUsages,               sub: 'across all codes',                  color: 'blue',   icon: <Users size={18} /> },
+        { label: 'Discount Given', val: fmt(analytics.totalDiscountGranted),  sub: 'total savings',                     color: 'rose',   icon: <DollarSign size={18} /> },
+        { label: 'Revenue',        val: fmt(analytics.totalRevenue),          sub: 'paid with coupons',                 color: 'teal',   icon: <TrendingUp size={18} /> },
+        { label: 'Active Codes',   val: analytics.activeCoupons,             sub: `of ${analytics.totalCoupons} total`, color: 'green',  icon: <Zap size={18} /> },
+    ] : [];
+
+    return (
+        <div style={{ padding: '24px', minHeight: '100vh' }}>
+
+            {/* ── PAGE HEADER ─────────────────────────────────────────── */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                    <div style={{
+                        width: 44, height: 44, borderRadius: 12,
+                        background: 'linear-gradient(135deg,#6c63ff,#8b5cf6)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        boxShadow: '0 4px 16px rgba(108,99,255,0.3)', flexShrink: 0,
+                    }}>
+                        <Tag size={20} color="white" />
                     </div>
                     <div>
-                        <h1 className="text-xl font-black text-white m-0 tracking-tight">Discounts & Referrals</h1>
-                        <p className="text-xs text-muted-foreground mt-1">Manage promo codes, referral links & usage analytics</p>
+                        <h1 style={{ fontSize: 20, fontWeight: 800, color: FG, margin: 0, letterSpacing: '-0.3px' }}>
+                            Discounts &amp; Referrals
+                        </h1>
+                        <p style={{ fontSize: 13, color: MFG, marginTop: 2 }}>
+                            Manage promo codes, referral links &amp; usage analytics
+                        </p>
                     </div>
                 </div>
-                <div className="flex items-center gap-2">
-                    <button className="btn-secondary p-2.5 rounded-xl hover:bg-white/10 transition-colors" onClick={load}>
-                        <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
+                <div style={{ display: 'flex', gap: 8 }}>
+                    <button className="btn-secondary" style={{ padding: '8px 12px' }} onClick={load}>
+                        <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
                     </button>
-                    <button className="btn-primary px-5 py-2.5 rounded-xl font-bold flex items-center gap-2" onClick={openCreate}>
-                        <Plus size={18} /> New Coupon
+                    <button className="btn-primary" onClick={openCreate}>
+                        <Plus size={15} /> New Coupon
                     </button>
                 </div>
             </div>
 
-            {/* ── Stat Cards ── */}
+            {/* ── STAT CARDS ──────────────────────────────────────────── */}
             {analytics && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 mb-8">
-                    {([
-                        { label: 'Total Coupons', value: analytics.totalCoupons, sub: `${analytics.activeCoupons} active`, color: 'purple', icon: <Tag size={18} /> },
-                        { label: 'Total Uses', value: analytics.totalUsages, sub: 'across all codes', color: 'blue', icon: <Users size={18} /> },
-                        { label: 'Discount Given', value: fmt(analytics.totalDiscountGranted), sub: 'total savings', color: 'rose', icon: <DollarSign size={18} /> },
-                        { label: 'Revenue', value: fmt(analytics.totalRevenue), sub: 'paid with coupons', color: 'teal', icon: <TrendingUp size={18} /> },
-                        { label: 'Active Codes', value: analytics.activeCoupons, sub: `of ${analytics.totalCoupons} total`, color: 'green', icon: <Zap size={18} /> },
-                    ] as { label: string; value: string | number; sub: string; color: string; icon: React.ReactNode }[]).map(s => (
-                        <div key={s.label} className={`glass-card stat-card ${s.color} p-5 flex flex-col gap-1`}>
-                            <div className="flex items-center justify-between mb-3">
-                                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{s.label}</span>
-                                <span className="text-muted-foreground opacity-60">{s.icon}</span>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 12, marginBottom: 20 }}>
+                    {stats.map(s => (
+                        <div key={s.label} className={`glass-card stat-card ${s.color}`} style={{ padding: '16px 18px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                                <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: MFG }}>{s.label}</span>
+                                <span style={{ color: MFG, opacity: 0.6, display: 'flex' }}>{s.icon}</span>
                             </div>
-                            <div className="text-2xl font-black text-white">{s.value}</div>
-                            <div className="text-[11px] font-bold text-muted-foreground mt-1">{s.sub}</div>
+                            <div style={{ fontSize: 22, fontWeight: 800, color: FG }}>{s.val}</div>
+                            <div style={{ fontSize: 11, color: MFG, marginTop: 3 }}>{s.sub}</div>
                         </div>
                     ))}
                 </div>
             )}
 
-            {/* ── Filter Tabs ── */}
-            <div className="flex items-center justify-between mb-4 mt-8">
-                <div className="flex gap-2 bg-white/5 p-1 rounded-xl border border-white/5">
+            {/* ── FILTER TABS ─────────────────────────────────────────── */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                <div style={{ display: 'flex', gap: 4, background: 'rgba(255,255,255,0.03)', padding: 4, borderRadius: 10, border: `1px solid ${BORDER}` }}>
                     {(['all', 'discount', 'referral'] as const).map(t => (
                         <button
                             key={t}
-                            className={`px-4 py-2 rounded-lg text-xs font-black transition-all cursor-pointer ${filter === t
-                                ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
-                                : 'text-gray-500 hover:text-white hover:bg-white/5'
-                                }`}
                             onClick={() => setFilter(t)}
+                            style={{
+                                padding: '6px 16px', borderRadius: 7, border: 'none', cursor: 'pointer',
+                                fontSize: 12, fontWeight: 700,
+                                background: filter === t ? PRIMARY : 'transparent',
+                                color: filter === t ? 'white' : MFG,
+                                transition: 'all 0.15s',
+                            }}
                         >
                             {t === 'all' ? 'All Codes' : t === 'discount' ? 'Promo Codes' : 'Referrals'}
                         </button>
                     ))}
                 </div>
-                <span className="text-[11px] font-black uppercase tracking-widest text-gray-500 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">
-                    {list.length} {list.length === 1 ? 'Entry' : 'Entries'}
+                <span style={{ fontSize: 11, fontWeight: 700, color: MFG, background: 'rgba(255,255,255,0.04)', padding: '5px 12px', borderRadius: 8, border: `1px solid ${BORDER}` }}>
+                    {list.length} {list.length === 1 ? 'coupon' : 'coupons'}
                 </span>
             </div>
 
-            {/* ── Cards Grid ── */}
+            {/* ── COUPON CARDS ─────────────────────────────────────────── */}
             {loading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {[1, 2, 3].map(i => <div key={i} className="h-64 rounded-3xl bg-white/5 animate-pulse border border-white/5" />)}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14 }}>
+                    {[1, 2, 3].map(i => (
+                        <div key={i} className="skeleton" style={{ height: 200, borderRadius: 14 }} />
+                    ))}
                 </div>
             ) : list.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-24 bg-white/[0.02] rounded-[2.5rem] border border-dashed border-white/10">
-                    <div className="w-20 h-20 rounded-3xl bg-blue-600/10 flex items-center justify-center mb-6 border border-blue-500/20 shadow-2xl">
-                        <Tag className="w-10 h-10 text-blue-500" />
+                <div className="glass-card" style={{ padding: '64px 32px', textAlign: 'center' }}>
+                    <div style={{ width: 60, height: 60, borderRadius: 14, background: 'rgba(108,99,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', border: `1px solid rgba(108,99,255,0.2)` }}>
+                        <Tag size={26} style={{ color: PRIMARY }} />
                     </div>
-                    <h3 className="text-2xl font-black text-white mb-2">Inventory Depleted</h3>
-                    <p className="text-gray-500 font-bold mb-8">No active promotion or referral codes detected.</p>
-                    <button
-                        className="flex items-center gap-3 px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black transition-all active:scale-95 shadow-xl shadow-blue-500/20"
-                        onClick={openCreate}
-                    >
-                        <Plus size={20} strokeWidth={3} />
-                        Initialize Coupon
-                    </button>
+                    <p style={{ fontSize: 17, fontWeight: 800, color: FG, marginBottom: 6 }}>No coupons yet</p>
+                    <p style={{ fontSize: 13, color: MFG, marginBottom: 20 }}>Create your first discount or referral code</p>
+                    <button className="btn-primary" onClick={openCreate}><Plus size={14} /> Create Coupon</button>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fadeIn transition-all">
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(320px,1fr))', gap: 14 }}>
                     {list.map(c => {
-                        const exp = expired(c);
-                        const pct = c.maxUses ? Math.min(100, Math.round((c.usedCount / c.maxUses) * 100)) : 0;
-                        const isRef = c.type === 'referral';
-                        const accentColor = isRef ? 'text-emerald-500' : 'text-blue-500';
-                        const accentBg = isRef ? 'bg-emerald-500/10' : 'bg-blue-500/10';
-                        const accentBorder = isRef ? 'border-emerald-500/20' : 'border-blue-500/20';
-                        const barColor = pct > 80 ? 'bg-red-500' : pct > 50 ? 'bg-amber-500' : 'bg-emerald-500';
+                        const exp    = isExpired(c);
+                        const isRef  = c.type === 'referral';
+                        const mainC  = isRef ? ACCENT : PRIMARY;
+                        const mainBg = isRef ? 'rgba(0,212,170,0.08)' : 'rgba(108,99,255,0.08)';
+                        const pct    = c.maxUses ? Math.min(100, Math.round((c.usedCount / c.maxUses) * 100)) : 0;
+                        const barC   = pct > 80 ? DANGER : pct > 50 ? WARNING : SUCCESS;
+                        const dim    = !c.isActive || exp;
 
                         return (
                             <div
                                 key={c._id}
-                                className={`group relative flex flex-col bg-white/[0.03] rounded-[2rem] border transition-all duration-300 hover:bg-white/[0.05] hover:border-white/20 hover:-translate-y-1 ${(!c.isActive || exp) ? 'border-white/5 opacity-60' : 'border-white/10'
-                                    }`}
+                                className="glass-card"
+                                style={{ overflow: 'hidden', opacity: dim ? 0.55 : 1, transition: 'opacity 0.2s' }}
                             >
-                                {/* card stripe */}
-                                <div className={`h-1.5 w-full rounded-t-full ${isRef ? 'bg-emerald-500' : 'bg-blue-600'}`} />
+                                {/* colour strip */}
+                                <div style={{ height: 3, background: mainC }} />
 
-                                <div className="p-6 md:p-8 flex flex-col h-full">
-                                    {/* code + status */}
-                                    <div className="flex items-start justify-between mb-6">
-                                        <div className="min-w-0">
-                                            <div className="flex items-center gap-3 mb-3">
-                                                <span className={`text-xl font-black tracking-[0.15em] uppercase truncate ${isRef ? 'text-emerald-400' : 'text-blue-400'}`}>
+                                <div style={{ padding: '16px 18px' }}>
+                                    {/* ── code row ── */}
+                                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 }}>
+                                        <div style={{ minWidth: 0 }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                                                <span style={{ fontFamily: 'var(--font-mono,monospace)', fontSize: 17, fontWeight: 900, letterSpacing: '0.1em', color: mainC, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 160 }}>
                                                     {c.code}
                                                 </span>
                                                 <button
                                                     onClick={() => copy(c.code)}
-                                                    className="p-1.5 rounded-lg text-gray-500 hover:text-white hover:bg-white/5 transition-all active:scale-90 shrink-0"
+                                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: MFG, padding: '2px 4px', lineHeight: 0, flexShrink: 0 }}
                                                 >
-                                                    {copied === c.code ? <CheckCheck size={14} className="text-emerald-500" /> : <Copy size={14} />}
+                                                    {copied === c.code
+                                                        ? <CheckCheck size={12} style={{ color: SUCCESS }} />
+                                                        : <Copy size={12} />}
                                                 </button>
                                             </div>
-                                            <div className="flex flex-wrap gap-2">
-                                                <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full border text-[9px] font-black uppercase tracking-widest ${accentColor} ${accentBg} ${accentBorder}`}>
-                                                    {isRef ? <Gift size={10} /> : <Sparkles size={10} />}
-                                                    {c.type}
-                                                </div>
-                                                {!c.isActive && (
-                                                    <div className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[9px] font-black text-gray-500 uppercase tracking-widest">
-                                                        Suspended
-                                                    </div>
-                                                )}
+                                            {/* badges */}
+                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                                                <span className="badge" style={{ background: mainBg, color: mainC, fontSize: 10 }}>
+                                                    {isRef ? <Gift size={9} /> : <Sparkles size={9} />} {c.type}
+                                                </span>
+                                                {!c.isActive && <span className="badge badge-inactive" style={{ fontSize: 10 }}>Paused</span>}
                                                 {exp && (
-                                                    <div className="px-3 py-1 rounded-full bg-red-500/10 border border-red-500/20 text-[9px] font-black text-red-500 uppercase tracking-widest flex items-center gap-1">
-                                                        <AlertTriangle size={10} /> Depleted
-                                                    </div>
+                                                    <span className="badge badge-inactive" style={{ fontSize: 10 }}>
+                                                        <AlertTriangle size={9} /> Expired
+                                                    </span>
                                                 )}
                                             </div>
                                         </div>
 
-                                        <div className={`p-4 rounded-2xl flex flex-col items-center justify-center min-w-[70px] shadow-lg ${accentBg} border ${accentBorder}`}>
-                                            <span className={`text-2xl font-black leading-none ${accentColor}`}>
+                                        {/* discount value chip */}
+                                        <div style={{ textAlign: 'center', padding: '8px 12px', background: mainBg, borderRadius: 10, flexShrink: 0, marginLeft: 8 }}>
+                                            <div style={{ fontSize: 20, fontWeight: 900, color: mainC, lineHeight: 1 }}>
                                                 {c.discountType === 'percentage' ? `${c.discountValue}%` : fmt(c.discountValue)}
-                                            </span>
-                                            <span className="text-[8px] font-black uppercase tracking-widest text-gray-500 mt-1.5">
-                                                {c.discountType === 'percentage' ? 'Reduction' : 'Flat Off'}
-                                            </span>
+                                            </div>
+                                            <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', color: MFG, marginTop: 2 }}>
+                                                {c.discountType === 'percentage' ? 'off' : 'flat'}
+                                            </div>
                                         </div>
                                     </div>
 
-                                    {/* info */}
-                                    <div className="flex-1">
-                                        {c.description && (
-                                            <p className="text-xs font-bold text-gray-400 leading-relaxed mb-4 line-clamp-2 h-8">
-                                                {c.description}
-                                            </p>
-                                        )}
-                                        {c.referrerId && (
-                                            <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/5 mb-4 group/ref hover:border-white/10 transition-colors">
-                                                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 shrink-0">
-                                                    <Users size={14} className="text-emerald-500" />
-                                                </div>
-                                                <div className="min-w-0">
-                                                    <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Oracle Account</p>
-                                                    <p className="text-xs font-black text-white truncate truncate">{c.referrerId.name}</p>
-                                                </div>
+                                    {/* description */}
+                                    {c.description && (
+                                        <p style={{ fontSize: 12, color: MFG, marginBottom: 10, lineHeight: 1.5, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                                            {c.description}
+                                        </p>
+                                    )}
+
+                                    {/* referrer */}
+                                    {c.referrerId && (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: MFG, marginBottom: 10 }}>
+                                            <Users size={11} /> By <strong style={{ color: FG }}>{c.referrerId.name}</strong>
+                                        </div>
+                                    )}
+
+                                    {/* usage bar */}
+                                    {c.maxUses ? (
+                                        <div style={{ marginBottom: 10 }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, fontWeight: 700, color: MFG, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                                <span>Usage</span><span>{c.usedCount} / {c.maxUses}</span>
                                             </div>
+                                            <div style={{ height: 4, background: 'rgba(255,255,255,0.06)', borderRadius: 99, overflow: 'hidden' }}>
+                                                <div style={{ height: '100%', width: `${pct}%`, background: barC, borderRadius: 99, transition: 'width 0.5s ease' }} />
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: MFG, marginBottom: 10 }}>
+                                            <Hash size={10} /> {c.usedCount} uses &middot; unlimited
+                                        </div>
+                                    )}
+
+                                    {/* metadata chips */}
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+                                        {c.minOrderAmount && (
+                                            <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: MFG }}>
+                                                <ShieldCheck size={10} style={{ color: PRIMARY }} /> Min {fmt(c.minOrderAmount)}
+                                            </span>
                                         )}
-
-                                        {/* usage metrics */}
-                                        <div className="space-y-3 mb-6">
-                                            {c.maxUses ? (
-                                                <div className="space-y-2">
-                                                    <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest">
-                                                        <span className="text-gray-500">Allocation</span>
-                                                        <span className="text-white">{c.usedCount} <span className="text-gray-600">/</span> {c.maxUses}</span>
-                                                    </div>
-                                                    <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
-                                                        <motion.div
-                                                            initial={{ width: 0 }}
-                                                            animate={{ width: `${pct}%` }}
-                                                            className={`h-full rounded-full ${barColor} shadow-[0_0_10px_rgba(0,0,0,0.5)]`}
-                                                        />
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/5">
-                                                    <Hash size={14} className="text-gray-500" />
-                                                    <span className="text-xs font-black text-gray-400 uppercase tracking-widest">
-                                                        {c.usedCount} <span className="text-gray-600 font-bold ml-1">Executions &middot; Perpetual</span>
-                                                    </span>
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {/* sub metrics */}
-                                        <div className="flex flex-wrap gap-x-4 gap-y-2 mb-6 opacity-60">
-                                            {c.minOrderAmount && (
-                                                <div className="flex items-center gap-1.5 text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                                                    <ShieldCheck size={12} className="text-blue-500" />
-                                                    Min {fmt(c.minOrderAmount)}
-                                                </div>
-                                            )}
-                                            {c.maxDiscountAmount && (
-                                                <div className="flex items-center gap-1.5 text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                                                    <Tag size={12} className="text-blue-500" />
-                                                    Cap {fmt(c.maxDiscountAmount)}
-                                                </div>
-                                            )}
-                                            {c.expiresAt && (
-                                                <div className={`flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest ${exp ? 'text-red-500' : 'text-gray-400'}`}>
-                                                    <Clock size={12} />
-                                                    {new Date(c.expiresAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: '2-digit' })}
-                                                </div>
-                                            )}
-                                        </div>
+                                        {c.maxDiscountAmount && (
+                                            <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: MFG }}>
+                                                <Tag size={10} style={{ color: PRIMARY }} /> Cap {fmt(c.maxDiscountAmount)}
+                                            </span>
+                                        )}
+                                        {c.expiresAt && (
+                                            <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 10, color: exp ? DANGER : MFG }}>
+                                                <Clock size={10} /> {new Date(c.expiresAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: '2-digit' })}
+                                            </span>
+                                        )}
                                     </div>
 
                                     {/* actions */}
-                                    <div className="flex items-center justify-between pt-5 border-t border-white/5 mt-auto">
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 10, borderTop: `1px solid ${BORDER}` }}>
                                         <button
-                                            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 ${c.isActive
-                                                ? 'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500 hover:text-white'
-                                                : 'bg-white/5 text-gray-500 hover:bg-white/10 hover:text-white'
-                                                }`}
+                                            className={c.isActive ? 'btn-success' : 'btn-secondary'}
+                                            style={{ padding: '5px 12px', fontSize: 12, gap: 5 }}
                                             onClick={() => toggle(c._id)}
                                         >
-                                            {c.isActive ? <ToggleRight size={16} /> : <ToggleLeft size={16} />}
+                                            {c.isActive ? <ToggleRight size={13} /> : <ToggleLeft size={13} />}
                                             {c.isActive ? 'Live' : 'Paused'}
                                         </button>
-
-                                        <div className="flex items-center gap-2">
-                                            <button
-                                                onClick={() => openStats(c._id)}
-                                                className="p-2.5 rounded-xl bg-white/5 text-gray-500 hover:text-blue-400 hover:bg-blue-400/10 transition-all border border-transparent hover:border-blue-400/20 active:scale-90"
-                                            >
-                                                <BarChart2 size={16} />
+                                        <div style={{ display: 'flex', gap: 5 }}>
+                                            <button className="btn-secondary" style={{ padding: '5px 9px', lineHeight: 0 }} onClick={() => openStats(c._id)}>
+                                                <BarChart2 size={13} />
                                             </button>
-                                            <button
-                                                onClick={() => openEdit(c)}
-                                                className="p-2.5 rounded-xl bg-white/5 text-gray-500 hover:text-emerald-400 hover:bg-emerald-400/10 transition-all border border-transparent hover:border-emerald-400/20 active:scale-90"
-                                            >
-                                                <Edit3 size={16} />
+                                            <button className="btn-secondary" style={{ padding: '5px 9px', lineHeight: 0 }} onClick={() => openEdit(c)}>
+                                                <Edit3 size={13} />
                                             </button>
-                                            <button
-                                                onClick={() => del(c._id)}
-                                                className="p-2.5 rounded-xl bg-white/5 text-gray-500 hover:text-red-400 hover:bg-red-400/10 transition-all border border-transparent hover:border-red-400/20 active:scale-90"
-                                            >
-                                                <Trash2 size={16} />
+                                            <button className="btn-danger" style={{ padding: '5px 9px', lineHeight: 0 }} onClick={() => del(c._id)}>
+                                                <Trash2 size={13} />
                                             </button>
                                         </div>
                                     </div>
@@ -367,322 +360,219 @@ export default function DiscountsPage() {
                 </div>
             )}
 
-            {/* ══ Create / Edit Modal ══ */}
-            <AnimatePresence>
-                {showModal && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                        <motion.div
-                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                            onClick={() => setShowModal(false)}
-                            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-                        />
-                        <motion.div
-                            initial={{ scale: 0.9, opacity: 0, y: 20 }}
-                            animate={{ scale: 1, opacity: 1, y: 0 }}
-                            exit={{ scale: 0.9, opacity: 0, y: 20 }}
-                            className="relative w-full max-w-2xl bg-[#030712] rounded-[2.5rem] shadow-[0_0_100px_rgba(37,99,235,0.1)] border border-white/5 overflow-hidden"
-                        >
-                            {/* header */}
-                            <div className="px-8 py-8 border-b border-white/5 bg-white/[0.01]">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-5">
-                                        <div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center shadow-lg shadow-blue-600/20">
-                                            <Tag size={22} color="white" strokeWidth={3} />
-                                        </div>
-                                        <div>
-                                            <h2 className="text-xl font-black text-white tracking-tight">{editId ? 'Modify Strategy' : 'Initialize Promotion'}</h2>
-                                            <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mt-1 italic">{editId ? 'Re-calibrating parameters' : 'New campaign deployment'}</p>
-                                        </div>
-                                    </div>
-                                    <button
-                                        onClick={() => setShowModal(false)}
-                                        className="w-10 h-10 rounded-xl flex items-center justify-center text-gray-500 hover:text-white hover:bg-white/5 transition-all"
-                                    >
-                                        <X size={20} />
-                                    </button>
+            {/* ══ CREATE / EDIT MODAL ══════════════════════════════════ */}
+            {showModal && (
+                <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) setShowModal(false); }}>
+                    <div className="modal-content" style={{ maxWidth: 560 }}>
+                        {/* header */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                <div style={{ width: 38, height: 38, borderRadius: 10, background: 'linear-gradient(135deg,#6c63ff,#8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                    <Tag size={17} color="white" />
+                                </div>
+                                <div>
+                                    <h2 style={{ fontSize: 16, fontWeight: 800, color: FG, margin: 0 }}>{editId ? 'Edit Coupon' : 'New Coupon'}</h2>
+                                    <p style={{ fontSize: 12, color: MFG, marginTop: 2 }}>{editId ? 'Update parameters' : 'Set up a new promo or referral code'}</p>
                                 </div>
                             </div>
+                            <button className="btn-secondary" style={{ padding: '6px 8px', lineHeight: 0 }} onClick={() => setShowModal(false)}>
+                                <X size={15} />
+                            </button>
+                        </div>
 
-                            <div className="p-8 space-y-8 max-h-[70vh] overflow-y-auto custom-scrollbar">
-                                <div className="grid grid-cols-2 gap-6">
-                                    <div className="space-y-2">
-                                        <LBL t="Reference Code *" />
-                                        <input
-                                            className="w-full bg-white/[0.02] border border-white/5 rounded-2xl px-5 py-4 text-sm font-black uppercase tracking-[0.2em] text-blue-400 focus:outline-none focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 transition-all placeholder:text-gray-700"
-                                            value={form.code}
-                                            onChange={e => setForm(f => ({ ...f, code: e.target.value.toUpperCase() }))}
-                                            placeholder="E.G. ALPHA20"
-                                            disabled={!!editId}
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <LBL t="Protocol Type" />
-                                        <select
-                                            className="w-full bg-white/[0.02] border border-white/5 rounded-2xl px-5 py-4 text-sm font-black text-white focus:outline-none focus:border-blue-500/50 transition-all appearance-none cursor-pointer"
-                                            value={form.type}
-                                            onChange={e => setForm(f => ({ ...f, type: e.target.value as any }))}
-                                        >
-                                            <option value="discount">Direct Promotion</option>
-                                            <option value="referral">Referral Link</option>
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-6">
-                                    <div className="space-y-2">
-                                        <LBL t="Reduction Unit" />
-                                        <select
-                                            className="w-full bg-white/[0.02] border border-white/5 rounded-2xl px-5 py-4 text-sm font-black text-white focus:outline-none focus:border-blue-500/50 transition-all appearance-none cursor-pointer"
-                                            value={form.discountType}
-                                            onChange={e => setForm(f => ({ ...f, discountType: e.target.value as any }))}
-                                        >
-                                            <option value="percentage">Percentage (%)</option>
-                                            <option value="fixed">Fixed Flat (₹)</option>
-                                        </select>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <LBL t={form.discountType === 'percentage' ? 'Quantifier (%)' : 'Quantifier (₹)'} />
-                                        <input
-                                            type="number"
-                                            className="w-full bg-white/[0.02] border border-white/5 rounded-2xl px-5 py-4 text-sm font-black text-white focus:outline-none focus:border-blue-500/50 transition-all"
-                                            value={form.discountValue}
-                                            onChange={e => setForm(f => ({ ...f, discountValue: Number(e.target.value) }))}
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-6">
-                                    <div className="space-y-2">
-                                        <LBL t="Max Ceiling (₹)" />
-                                        <input
-                                            type="number"
-                                            className="w-full bg-white/[0.02] border border-white/5 rounded-2xl px-5 py-4 text-sm font-black text-white focus:outline-none focus:border-blue-500/50 transition-all placeholder:text-gray-700"
-                                            value={form.maxDiscountAmount}
-                                            onChange={e => setForm(f => ({ ...f, maxDiscountAmount: e.target.value }))}
-                                            placeholder="None"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <LBL t="Min Threshold (₹)" />
-                                        <input
-                                            type="number"
-                                            className="w-full bg-white/[0.02] border border-white/5 rounded-2xl px-5 py-4 text-sm font-black text-white focus:outline-none focus:border-blue-500/50 transition-all placeholder:text-gray-700"
-                                            value={form.minOrderAmount}
-                                            onChange={e => setForm(f => ({ ...f, minOrderAmount: e.target.value }))}
-                                            placeholder="None"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-6">
-                                    <div className="space-y-2">
-                                        <LBL t="Execution Limit" />
-                                        <input
-                                            type="number"
-                                            className="w-full bg-white/[0.02] border border-white/5 rounded-2xl px-5 py-4 text-sm font-black text-white focus:outline-none focus:border-blue-500/50 transition-all placeholder:text-gray-700"
-                                            value={form.maxUses}
-                                            onChange={e => setForm(f => ({ ...f, maxUses: e.target.value }))}
-                                            placeholder="Infinite"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <LBL t="Expiration Date" />
-                                        <input
-                                            type="date"
-                                            className="w-full bg-white/[0.02] border border-white/5 rounded-2xl px-5 py-4 text-sm font-black text-white focus:outline-none focus:border-blue-500/50 transition-all"
-                                            value={form.expiresAt}
-                                            onChange={e => setForm(f => ({ ...f, expiresAt: e.target.value }))}
-                                        />
-                                    </div>
-                                </div>
-
-                                {form.type === 'referral' && (
-                                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} className="space-y-2">
-                                        <LBL t="Originating User ID" />
-                                        <div className="relative">
-                                            <Users size={16} className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500" />
-                                            <input
-                                                className="w-full bg-white/[0.02] border border-white/5 rounded-2xl pl-12 pr-5 py-4 text-xs font-black text-white focus:outline-none focus:border-emerald-500/50 transition-all placeholder:text-gray-700"
-                                                value={form.referrerId}
-                                                onChange={e => setForm(f => ({ ...f, referrerId: e.target.value }))}
-                                                placeholder="MongoDB Object ID Reference"
-                                            />
-                                        </div>
-                                    </motion.div>
-                                )}
-
-                                <div className="space-y-2">
-                                    <LBL t="Internal Memo" />
-                                    <textarea
-                                        className="w-full bg-white/[0.02] border border-white/5 rounded-2xl px-5 py-4 text-sm font-bold text-gray-400 focus:outline-none focus:border-blue-500/50 transition-all min-h-[100px] placeholder:text-gray-700"
-                                        value={form.description}
-                                        onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                                        placeholder="Reasoning for this allocation..."
+                        {/* form */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                                <Row label="Coupon Code *">
+                                    <input
+                                        className="form-input"
+                                        style={{ fontFamily: 'var(--font-mono,monospace)', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase' }}
+                                        value={form.code}
+                                        onChange={e => setForm(f => ({ ...f, code: e.target.value.toUpperCase() }))}
+                                        placeholder="SAVE20"
+                                        disabled={!!editId}
                                     />
-                                </div>
-
-                                <div className="flex items-center justify-between p-6 rounded-[1.5rem] bg-white/[0.01] border border-white/5">
-                                    <div className="flex items-center gap-4">
-                                        <div className={`w-3 h-3 rounded-full ${form.isActive ? 'bg-emerald-500 animate-pulse' : 'bg-gray-700'}`} />
-                                        <div>
-                                            <p className="text-sm font-black text-white">Live Status</p>
-                                            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-0.5">Allow immediate execution</p>
-                                        </div>
-                                    </div>
-                                    <button
-                                        onClick={() => setForm(f => ({ ...f, isActive: !f.isActive }))}
-                                        className={`w-14 h-8 rounded-full transition-all relative ${form.isActive ? 'bg-emerald-500' : 'bg-white/10'}`}
-                                    >
-                                        <div className={`absolute top-1 w-6 h-6 rounded-full bg-white shadow-xl transition-all ${form.isActive ? 'left-7' : 'left-1'}`} />
-                                    </button>
-                                </div>
+                                </Row>
+                                <Row label="Type">
+                                    <select className="form-input form-select" value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value as any }))}>
+                                        <option value="discount">Promo Discount</option>
+                                        <option value="referral">Referral Code</option>
+                                    </select>
+                                </Row>
                             </div>
 
-                            <div className="p-8 bg-white/[0.01] border-t border-white/5 flex gap-4">
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                                <Row label="Discount Type">
+                                    <select className="form-input form-select" value={form.discountType} onChange={e => setForm(f => ({ ...f, discountType: e.target.value as any }))}>
+                                        <option value="percentage">% Percentage</option>
+                                        <option value="fixed">Fixed Amount</option>
+                                    </select>
+                                </Row>
+                                <Row label={form.discountType === 'percentage' ? 'Value (%)' : 'Value (\u20b9)'}>
+                                    <input type="number" className="form-input" value={form.discountValue} onChange={e => setForm(f => ({ ...f, discountValue: Number(e.target.value) }))} min={1} />
+                                </Row>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                                <Row label="Max Discount Cap (\u20b9)">
+                                    <input type="number" className="form-input" value={form.maxDiscountAmount} onChange={e => setForm(f => ({ ...f, maxDiscountAmount: e.target.value }))} placeholder="Optional" />
+                                </Row>
+                                <Row label="Minimum Order (\u20b9)">
+                                    <input type="number" className="form-input" value={form.minOrderAmount} onChange={e => setForm(f => ({ ...f, minOrderAmount: e.target.value }))} placeholder="Optional" />
+                                </Row>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                                <Row label="Max Uses">
+                                    <input type="number" className="form-input" value={form.maxUses} onChange={e => setForm(f => ({ ...f, maxUses: e.target.value }))} placeholder="Unlimited" />
+                                </Row>
+                                <Row label="Expires At">
+                                    <input type="date" className="form-input" value={form.expiresAt} onChange={e => setForm(f => ({ ...f, expiresAt: e.target.value }))} />
+                                </Row>
+                            </div>
+
+                            {form.type === 'referral' && (
+                                <Row label="Referrer User ID">
+                                    <input className="form-input" style={{ fontFamily: 'var(--font-mono,monospace)' }} value={form.referrerId} onChange={e => setForm(f => ({ ...f, referrerId: e.target.value }))} placeholder="MongoDB ObjectId" />
+                                </Row>
+                            )}
+
+                            <Row label="Description (internal note)">
+                                <input className="form-input" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} placeholder="Optional note..." />
+                            </Row>
+
+                            {/* active toggle */}
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', background: 'rgba(255,255,255,0.03)', border: `1px solid ${BORDER}`, borderRadius: 10 }}>
+                                <div>
+                                    <p style={{ fontSize: 14, fontWeight: 600, color: FG, margin: 0 }}>Active Status</p>
+                                    <p style={{ fontSize: 12, color: MFG, marginTop: 2 }}>Coupon usable by customers immediately</p>
+                                </div>
                                 <button
-                                    className="flex-1 py-4 rounded-2xl text-xs font-black uppercase tracking-widest text-gray-500 hover:text-white hover:bg-white/5 transition-all border border-transparent hover:border-white/5"
-                                    onClick={() => setShowModal(false)}
+                                    onClick={() => setForm(f => ({ ...f, isActive: !f.isActive }))}
+                                    style={{ width: 46, height: 24, borderRadius: 99, background: form.isActive ? SUCCESS : 'rgba(255,255,255,0.1)', border: 'none', cursor: 'pointer', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}
                                 >
-                                    Cancel
-                                </button>
-                                <button
-                                    className="flex-[2] py-4 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-black uppercase tracking-widest transition-all shadow-xl shadow-blue-500/20 active:scale-[0.98] disabled:opacity-20 flex items-center justify-center gap-3"
-                                    onClick={save}
-                                    disabled={saving || !form.code || !form.discountValue}
-                                >
-                                    {saving ? <><RefreshCw size={18} className="animate-spin" /> Syncing…</> : <>{editId ? 'Commit Changes' : 'Launch Protocol'} <ChevronRight size={18} /></>}
+                                    <span style={{ position: 'absolute', top: 2, width: 20, height: 20, borderRadius: '50%', background: 'white', boxShadow: '0 1px 4px rgba(0,0,0,0.3)', transition: 'left 0.2s', left: form.isActive ? 24 : 2 }} />
                                 </button>
                             </div>
-                        </motion.div>
+                        </div>
+
+                        {/* footer */}
+                        <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
+                            <button className="btn-secondary" style={{ flex: 1 }} onClick={() => setShowModal(false)}>Cancel</button>
+                            <button
+                                className="btn-primary"
+                                style={{ flex: 2 }}
+                                onClick={save}
+                                disabled={saving || !form.code || !form.discountValue}
+                            >
+                                {saving
+                                    ? <><RefreshCw size={13} className="animate-spin" /> Saving…</>
+                                    : <>{editId ? 'Update Coupon' : 'Create Coupon'} <ChevronRight size={13} /></>
+                                }
+                            </button>
+                        </div>
                     </div>
-                )}
-            </AnimatePresence>
+                </div>
+            )}
 
-            {/* ══ Stats Modal ══ */}
-            <AnimatePresence>
-                {(loadingStats || statsModal) && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-                        <motion.div
-                            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                            onClick={() => setStatsModal(null)}
-                            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-                        />
-                        <motion.div
-                            initial={{ scale: 0.9, opacity: 0, x: 20 }}
-                            animate={{ scale: 1, opacity: 1, x: 0 }}
-                            exit={{ scale: 0.9, opacity: 0, x: 20 }}
-                            className="relative w-full max-w-2xl bg-[#030712] rounded-[2.5rem] shadow-[0_0_100px_rgba(0,212,170,0.1)] border border-white/5 overflow-hidden"
-                        >
-                            {/* header */}
-                            <div className="px-8 py-8 border-b border-white/5 bg-white/[0.01]">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-5">
-                                        <div className="w-12 h-12 rounded-2xl bg-emerald-500 flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                                            <BarChart2 size={22} color="white" strokeWidth={3} />
-                                        </div>
-                                        <div>
-                                            <h2 className="text-xl font-black text-white tracking-tight">Performance Analytics</h2>
-                                            <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mt-1 italic">Metrics & conversion protocol</p>
-                                        </div>
-                                    </div>
-                                    <button
-                                        onClick={() => setStatsModal(null)}
-                                        className="w-10 h-10 rounded-xl flex items-center justify-center text-gray-500 hover:text-white hover:bg-white/5 transition-all"
-                                    >
-                                        <X size={20} />
-                                    </button>
+            {/* ══ STATS MODAL ══════════════════════════════════════════ */}
+            {(loadingStats || statsModal) && (
+                <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) setStatsModal(null); }}>
+                    <div className="modal-content" style={{ maxWidth: 640 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                                <div style={{ width: 38, height: 38, borderRadius: 10, background: ACCENT, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                    <BarChart2 size={17} color="white" />
+                                </div>
+                                <div>
+                                    <h2 style={{ fontSize: 16, fontWeight: 800, color: FG, margin: 0 }}>Coupon Analytics</h2>
+                                    <p style={{ fontSize: 12, color: MFG, marginTop: 2 }}>Usage breakdown</p>
                                 </div>
                             </div>
+                            <button className="btn-secondary" style={{ padding: '6px 8px', lineHeight: 0 }} onClick={() => setStatsModal(null)}>
+                                <X size={15} />
+                            </button>
+                        </div>
 
-                            {loadingStats && !statsModal ? (
-                                <div className="p-24 flex flex-col items-center gap-6">
-                                    <RefreshCw size={40} className="animate-spin text-emerald-500" />
-                                    <p className="text-xs font-black text-gray-500 uppercase tracking-[0.3em]">Aggregating Data…</p>
+                        {loadingStats && !statsModal ? (
+                            <div style={{ textAlign: 'center', padding: '48px 0' }}>
+                                <RefreshCw size={28} className="animate-spin" style={{ margin: '0 auto 10px', color: PRIMARY }} />
+                                <p style={{ fontSize: 13, color: MFG }}>Loading stats…</p>
+                            </div>
+                        ) : statsModal ? (
+                            <>
+                                {/* identity card */}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', background: 'rgba(108,99,255,0.07)', border: '1px solid rgba(108,99,255,0.15)', borderRadius: 12, marginBottom: 18 }}>
+                                    <div style={{ width: 48, height: 48, borderRadius: 12, background: PRIMARY, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                        <Tag size={20} color="white" />
+                                    </div>
+                                    <div style={{ flex: 1 }}>
+                                        <p style={{ fontFamily: 'var(--font-mono,monospace)', fontSize: 20, fontWeight: 900, letterSpacing: '0.1em', color: PRIMARY, margin: 0 }}>{statsModal.coupon.code}</p>
+                                        <p style={{ fontSize: 12, color: MFG, marginTop: 2 }}>{statsModal.coupon.description || 'No description'}</p>
+                                    </div>
+                                    <div style={{ textAlign: 'right' }}>
+                                        <p style={{ fontSize: 22, fontWeight: 900, color: PRIMARY, lineHeight: 1, margin: 0 }}>
+                                            {statsModal.coupon.discountType === 'percentage' ? `${statsModal.coupon.discountValue}%` : fmt(statsModal.coupon.discountValue)}
+                                        </p>
+                                        <p style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', color: MFG, marginTop: 2 }}>{statsModal.coupon.discountType}</p>
+                                    </div>
                                 </div>
-                            ) : statsModal ? (
-                                <div className="p-8 space-y-8 max-h-[70vh] overflow-y-auto custom-scrollbar">
-                                    {/* code identity card */}
-                                    <div className="flex items-center gap-6 p-6 rounded-[2rem] bg-white/[0.02] border border-white/5">
-                                        <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 border border-white/10 ${statsModal.coupon.type === 'referral' ? 'bg-emerald-500/10' : 'bg-blue-500/10'}`}>
-                                            {statsModal.coupon.type === 'referral' ? <Gift size={28} className="text-emerald-500" /> : <Tag size={28} className="text-blue-500" />}
+
+                                {/* 4 stats */}
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10, marginBottom: 20 }}>
+                                    {[
+                                        { label: 'Total Uses',     val: statsModal.stats.totalUses,                     c: PRIMARY },
+                                        { label: 'Discount Given', val: fmt(statsModal.stats.totalDiscountGranted),      c: DANGER },
+                                        { label: 'Revenue',        val: fmt(statsModal.stats.totalRevenue),              c: SUCCESS },
+                                        { label: 'Avg Discount',   val: fmt(statsModal.stats.averageDiscount),           c: ACCENT },
+                                    ].map(s => (
+                                        <div key={s.label} style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${BORDER}`, borderRadius: 10, padding: '12px 14px', textAlign: 'center' }}>
+                                            <p style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: MFG, marginBottom: 6 }}>{s.label}</p>
+                                            <p style={{ fontSize: 18, fontWeight: 900, color: s.c, margin: 0 }}>{s.val}</p>
                                         </div>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-3">
-                                                <h3 className="text-2xl font-black text-white tracking-[0.1em] uppercase">{statsModal.coupon.code}</h3>
-                                                <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[9px] font-black text-gray-500 uppercase tracking-widest">{statsModal.coupon.type}</span>
-                                            </div>
-                                            <p className="text-sm font-bold text-gray-500 mt-1 italic line-clamp-1">{statsModal.coupon.description || 'Global allocation code'}</p>
-                                        </div>
-                                        <div className="text-right shrink-0">
-                                            <p className="text-3xl font-black text-white leading-none">
-                                                {statsModal.coupon.discountType === 'percentage' ? `${statsModal.coupon.discountValue}%` : fmt(statsModal.coupon.discountValue)}
-                                            </p>
-                                            <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mt-2">{statsModal.coupon.discountType === 'percentage' ? 'Ratio' : 'Total'}</p>
-                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* usage list */}
+                                <div>
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                                        <p style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: MFG, margin: 0 }}>Who Redeemed</p>
+                                        <span className="badge badge-purple" style={{ fontSize: 10 }}>{statsModal.usages.length} users</span>
                                     </div>
 
-                                    {/* stats grid */}
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                        {[
-                                            { label: 'Uses', value: statsModal.stats.totalUses, icon: <Users size={16} />, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-                                            { label: 'Slashed', value: fmt(statsModal.stats.totalDiscountGranted), icon: <DollarSign size={16} />, color: 'text-red-500', bg: 'bg-red-500/10' },
-                                            { label: 'Revenue', value: fmt(statsModal.stats.totalRevenue), icon: <TrendingUp size={16} />, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-                                            { label: 'Avg Slash', value: fmt(statsModal.stats.averageDiscount), icon: <Zap size={16} />, color: 'text-amber-500', bg: 'bg-amber-500/10' },
-                                        ].map(s => (
-                                            <div key={s.label} className={`flex flex-col items-center justify-center p-5 rounded-2xl border border-white/5 transition-all hover:bg-white/5 ${s.bg}`}>
-                                                <span className={`${s.color} mb-3`}>{s.icon}</span>
-                                                <p className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-1.5">{s.label}</p>
-                                                <p className={`text-sm font-black ${s.color}`}>{s.value}</p>
-                                            </div>
-                                        ))}
-                                    </div>
-
-                                    {/* usage history */}
-                                    <div className="space-y-4">
-                                        <div className="flex items-center justify-between">
-                                            <h3 className="text-xs font-black text-white uppercase tracking-widest flex items-center gap-3">
-                                                <Clock size={16} className="text-gray-500" /> Redemption Log
-                                            </h3>
-                                            <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest bg-white/5 px-3 py-1 rounded-full border border-white/5">
-                                                {statsModal.usages.length} Total Hits
-                                            </span>
+                                    {statsModal.usages.length === 0 ? (
+                                        <div style={{ textAlign: 'center', padding: '32px 0', color: MFG }}>
+                                            <Eye size={28} style={{ margin: '0 auto 8px', opacity: 0.3 }} />
+                                            <p style={{ fontSize: 13 }}>No redemptions yet</p>
                                         </div>
-
-                                        {statsModal.usages.length === 0 ? (
-                                            <div className="py-16 flex flex-col items-center border border-dashed border-white/10 rounded-[1.5rem] bg-white/[0.01]">
-                                                <Eye size={32} className="text-gray-700 mb-4" />
-                                                <p className="text-xs font-bold text-gray-600 uppercase tracking-widest">No transaction data</p>
-                                            </div>
-                                        ) : (
-                                            <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                                                {statsModal.usages.map((u, i) => (
-                                                    <div key={i} className="flex items-center gap-5 p-5 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-all group">
-                                                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center text-xs font-black text-white shrink-0 group-hover:scale-105 transition-transform">
-                                                            {(u.userId?.name || '?')[0].toUpperCase()}
-                                                        </div>
-                                                        <div className="flex-1 min-w-0">
-                                                            <p className="text-[13px] font-black text-white truncate">{u.userId?.name || 'Anonymous'}</p>
-                                                            <p className="text-[11px] font-bold text-gray-500 truncate mt-0.5">{u.userId?.email}</p>
-                                                        </div>
-                                                        <div className="text-right shrink-0">
-                                                            <p className="text-sm font-black text-red-400">&minus;{fmt(u.discountAmount)}</p>
-                                                            <p className="text-[10px] font-bold text-gray-500 mt-1 italic uppercase tracking-widest">on {fmt(u.finalAmount)}</p>
-                                                        </div>
-                                                        <div className="text-right shrink-0 pl-4 border-l border-white/5 min-w-[70px]">
-                                                            <p className="text-[11px] font-black text-white">{new Date(u.usedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</p>
-                                                            <p className="text-[8px] font-black text-gray-600 uppercase tracking-tighter mt-1">Settled</p>
-                                                        </div>
+                                    ) : (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 240, overflowY: 'auto' }}>
+                                            {statsModal.usages.map((u, i) => (
+                                                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', background: 'rgba(255,255,255,0.02)', border: `1px solid ${BORDER}`, borderRadius: 8 }}>
+                                                    <div style={{ width: 30, height: 30, borderRadius: '50%', background: PRIMARY, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 11, fontWeight: 800, flexShrink: 0 }}>
+                                                        {(u.userId?.name || '?')[0].toUpperCase()}
                                                     </div>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
+                                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                                        <p style={{ fontSize: 13, fontWeight: 600, color: FG, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: 0 }}>{u.userId?.name || 'Unknown'}</p>
+                                                        <p style={{ fontSize: 11, color: MFG, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: 0 }}>{u.userId?.email}</p>
+                                                    </div>
+                                                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                                                        <p style={{ fontSize: 12, fontWeight: 800, color: DANGER, margin: 0 }}>-{fmt(u.discountAmount)}</p>
+                                                        <p style={{ fontSize: 10, color: MFG }}>{fmt(u.finalAmount)} paid</p>
+                                                    </div>
+                                                    <p style={{ fontSize: 10, color: MFG, flexShrink: 0 }}>
+                                                        {new Date(u.usedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                                                    </p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
-                            ) : null}
-                        </motion.div>
+                            </>
+                        ) : null}
                     </div>
-                )}
-            </AnimatePresence>
+                </div>
+            )}
         </div>
     );
 }

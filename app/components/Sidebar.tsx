@@ -29,7 +29,7 @@ export type Page =
     | 'lessons'
     | 'quizzes'
     | 'resources'
-    | 'ai-usage';
+    | 'ai-usage'
     | 'discounts';
 
 const navItems: { id: Page; label: string; icon: React.ReactNode; group: string }[] = [
