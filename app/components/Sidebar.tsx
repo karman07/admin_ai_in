@@ -16,7 +16,8 @@ import {
     FileText,
     Cpu,
     Ticket,
-    Star
+    Star,
+    MessageSquare,
 } from 'lucide-react';
 
 export type Page =
@@ -31,6 +32,7 @@ export type Page =
     | 'quizzes'
     | 'resources'
     | 'ai-usage'
+    | 'interviews'
     | 'discounts'
     | 'reviews';
 
@@ -47,7 +49,8 @@ const navItems: { id: Page; label: string; icon: React.ReactNode; group: string 
     { id: 'lessons', label: 'Lessons', icon: <GraduationCap size={18} />, group: 'Content' },
     { id: 'quizzes', label: 'Quizzes', icon: <HelpCircle size={18} />, group: 'Content' },
     { id: 'resources', label: 'Resources', icon: <FileText size={18} />, group: 'Content' },
-    { id: 'ai-usage', label: 'AI Usage', icon: <Cpu size={18} />, group: 'Overview' },
+    { id: 'ai-usage',   label: 'AI Usage',   icon: <Cpu size={18} />,           group: 'Overview' },
+    { id: 'interviews', label: 'Interviews', icon: <MessageSquare size={18} />,  group: 'Overview' },
 ];
 
 export default function Sidebar({
@@ -87,31 +90,24 @@ export default function Sidebar({
             {/* Logo */}
             <div
                 style={{
-                    padding: collapsed ? '20px 12px' : '20px 20px',
+                    padding: collapsed ? '16px 12px' : '16px 20px',
                     borderBottom: '1px solid var(--card-border)',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 12,
+                    justifyContent: collapsed ? 'center' : 'flex-start',
                     minHeight: 72,
                 }}
             >
-                {!collapsed && (
-                    <div style={{ overflow: 'hidden' }}>
-                        <div
-                            style={{
-                                fontSize: 16,
-                                fontWeight: 700,
-                                color: '#6c63ff',
-                                whiteSpace: 'nowrap',
-                            }}
-                        >
-                            AI for Job
-                        </div>
-                        <div style={{ fontSize: 11, color: 'var(--muted-foreground)', whiteSpace: 'nowrap' }}>
-                            Admin Panel
-                        </div>
-                    </div>
-                )}
+                <img
+                    src="/logo.png"
+                    alt="AI for Job"
+                    style={{
+                        height: collapsed ? 32 : 40,
+                        width: 'auto',
+                        objectFit: 'contain',
+                        transition: 'height 0.2s ease',
+                    }}
+                />
             </div>
 
             {/* Navigation */}

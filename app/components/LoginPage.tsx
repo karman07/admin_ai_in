@@ -86,9 +86,11 @@ export default function LoginPage({
             >
                 {/* Logo */}
                 <div style={{ textAlign: 'center', marginBottom: 32 }}>
-                    <h1 style={{ fontSize: 24, fontWeight: 800 }}>
-                        <span style={{ color: '#6c63ff' }}>AI for Job</span>
-                    </h1>
+                    <img
+                        src="/logo.png"
+                        alt="AI for Job"
+                        style={{ height: 56, width: 'auto', objectFit: 'contain', marginBottom: 12 }}
+                    />
                     <p
                         style={{
                             color: 'var(--muted-foreground)',

@@ -194,3 +194,16 @@ export const reviewsApi = {
     pin: (id: string, isPinned: boolean) => fetchApi(`reviews/admin/${id}/pin`, { method: 'PATCH', body: JSON.stringify({ isPinned }) }),
     delete: (id: string) => fetchApi(`reviews/admin/${id}`, { method: 'DELETE' }),
 };
+
+// Interview Results (Admin)
+export const resultsApi = {
+    getAllAdmin: (params?: { page?: number; limit?: number; roundType?: string; search?: string }) => {
+        const q = new URLSearchParams();
+        if (params?.page)      q.append('page',      String(params.page));
+        if (params?.limit)     q.append('limit',     String(params.limit));
+        if (params?.roundType) q.append('roundType', params.roundType);
+        if (params?.search)    q.append('search',    params.search);
+        const qs = q.toString();
+        return fetchApi(`results/admin/all${qs ? `?${qs}` : ''}`);
+    },
+};
