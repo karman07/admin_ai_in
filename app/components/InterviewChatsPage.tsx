@@ -149,8 +149,11 @@ function ResultRow({ result }: { result: any }) {
     const date    = result.createdAt
         ? new Date(result.createdAt).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })
         : '—';
-    const tokens  = result.tokenUsage?.totalTokens ?? 0;
-    const costUsd = result.tokenUsage?.costUsd ?? 0;
+    const tokens   = result.tokenUsage?.totalTokens ?? 0;
+    const costUsd  = result.tokenUsage?.costUsd ?? 0;
+    const expRating = result.feedback?.experienceRating ?? null;
+    const resRating = result.feedback?.resultRating ?? null;
+    const fbComment = result.feedback?.comment ?? '';
 
     return (
         <div style={{
@@ -213,6 +216,18 @@ function ResultRow({ result }: { result: any }) {
                         </span>
                     </div>
 
+                    {/* User rating pill (collapsed) */}
+                    {expRating !== null && (
+                        <div style={{
+                            display: 'flex', alignItems: 'center', gap: 3,
+                            background: 'rgba(255,184,0,0.1)', border: '1px solid rgba(255,184,0,0.2)',
+                            borderRadius: 16, padding: '3px 8px',
+                        }}>
+                            <Star size={10} fill="#ffb800" color="#ffb800" />
+                            <span style={{ fontSize: 11, fontWeight: 700, color: '#ffb800' }}>{expRating}</span>
+                        </div>
+                    )}
+
                     {/* Date */}
                     <span style={{ fontSize: 11, color: '#475569', whiteSpace: 'nowrap' }}>{date}</span>
 
@@ -258,11 +273,40 @@ function ResultRow({ result }: { result: any }) {
                             </div>
                         )}
                         {result.feedback && (
-                            <div style={{ background: 'rgba(255,184,0,0.05)', border: '1px solid rgba(255,184,0,0.12)', borderRadius: 8, padding: '7px 12px' }}>
-                                <div style={{ color: '#a37800', fontSize: 9, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 700, marginBottom: 3 }}>Feedback</div>
-                                <div style={{ color: '#ffb800', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
-                                    <Star size={11} fill="#ffb800" color="#ffb800" /> {result.feedback.experienceRating ?? '—'}/5
-                                    {result.feedback.comment && <span style={{ color: '#64748b', fontWeight: 400 }}> — {result.feedback.comment}</span>}
+                            <div style={{ background: 'rgba(255,184,0,0.05)', border: '1px solid rgba(255,184,0,0.18)', borderRadius: 8, padding: '7px 12px', minWidth: 140 }}>
+                                <div style={{ color: '#a37800', fontSize: 9, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 700, marginBottom: 6 }}>User Feedback</div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                    {expRating !== null && (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                                            <span style={{ color: '#64748b', fontSize: 10, width: 90 }}>Experience</span>
+                                            <div style={{ display: 'flex', gap: 2 }}>
+                                                {[1,2,3,4,5].map(n => (
+                                                    <Star key={n} size={11}
+                                                        fill={n <= expRating ? '#ffb800' : 'none'}
+                                                        color={n <= expRating ? '#ffb800' : '#334155'}
+                                                    />
+                                                ))}
+                                            </div>
+                                            <span style={{ color: '#ffb800', fontSize: 11, fontWeight: 700 }}>{expRating}/5</span>
+                                        </div>
+                                    )}
+                                    {resRating !== null && (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                                            <span style={{ color: '#64748b', fontSize: 10, width: 90 }}>Result accuracy</span>
+                                            <div style={{ display: 'flex', gap: 2 }}>
+                                                {[1,2,3,4,5].map(n => (
+                                                    <Star key={n} size={11}
+                                                        fill={n <= resRating ? '#a48fff' : 'none'}
+                                                        color={n <= resRating ? '#a48fff' : '#334155'}
+                                                    />
+                                                ))}
+                                            </div>
+                                            <span style={{ color: '#a48fff', fontSize: 11, fontWeight: 700 }}>{resRating}/5</span>
+                                        </div>
+                                    )}
+                                    {fbComment && (
+                                        <div style={{ color: '#94a3b8', fontSize: 11, marginTop: 2, fontStyle: 'italic' }}>"{fbComment}"</div>
+                                    )}
                                 </div>
                             </div>
                         )}
