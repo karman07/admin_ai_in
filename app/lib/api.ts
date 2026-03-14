@@ -93,6 +93,8 @@ export const authApi = {
 export const usersApi = {
     getAll: () => fetchApi('users/admin/all'),
     getById: (id: string) => fetchApi(`users/${id}`),
+    updatePlan: (id: string, data: { planId?: string; status: string; expiryDays?: number }) =>
+        fetchApi(`users/admin/${id}/plan`, { method: 'PATCH', body: JSON.stringify(data) }),
 };
 
 // Analytics

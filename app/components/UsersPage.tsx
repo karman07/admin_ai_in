@@ -19,8 +19,10 @@ import {
     ChevronDown,
     ChevronUp,
     ExternalLink,
+    Pencil,
+    X,
 } from 'lucide-react';
-import { usersApi, API_BASE } from '../lib/api';
+import { usersApi, subscriptionsApi, API_BASE } from '../lib/api';
 
 interface UserData {
     _id: string;
@@ -93,6 +95,12 @@ export default function UsersPage() {
     const [sortField, setSortField] = useState<'createdAt' | 'name' | 'subscriptionStatus'>('createdAt');
     const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
 
+    // Plan edit modal state
+    const [editPlanUserId, setEditPlanUserId] = useState<string | null>(null);
+    const [availablePlans, setAvailablePlans] = useState<any[]>([]);
+    const [planForm, setPlanForm] = useState<{ planId: string; status: string; expiryDays: number }>({ planId: '', status: 'active', expiryDays: 30 });
+    const [planSaving, setPlanSaving] = useState(false);
+
     const fetchData = async () => {
         setLoading(true);
         try {
@@ -108,6 +116,33 @@ export default function UsersPage() {
     useEffect(() => {
         fetchData();
     }, []);
+
+    useEffect(() => {
+        subscriptionsApi.getAll().then((plans: any[]) => setAvailablePlans(plans)).catch(console.error);
+    }, []);
+
+    const openPlanModal = (u: UserData) => {
+        setPlanForm({
+            planId: u.subscriptionPlan?._id || '',
+            status: u.subscriptionStatus || 'free',
+            expiryDays: 30,
+        });
+        setEditPlanUserId(u._id);
+    };
+
+    const savePlan = async () => {
+        if (!editPlanUserId) return;
+        setPlanSaving(true);
+        try {
+            const updated = await usersApi.updatePlan(editPlanUserId, planForm);
+            setUsers(prev => prev.map(u => u._id === editPlanUserId ? { ...u, ...updated } : u));
+            setEditPlanUserId(null);
+        } catch (e: any) {
+            alert(e?.message || 'Failed to update plan');
+        } finally {
+            setPlanSaving(false);
+        }
+    };
 
     // Filter and sort
     const filtered = users
@@ -676,6 +711,26 @@ export default function UsersPage() {
                                                                         </div>
                                                                     </div>
                                                                 )}
+                                                                <button
+                                                                    onClick={() => openPlanModal(u)}
+                                                                    style={{
+                                                                        marginTop: 12,
+                                                                        display: 'flex',
+                                                                        alignItems: 'center',
+                                                                        gap: 6,
+                                                                        padding: '6px 14px',
+                                                                        borderRadius: 8,
+                                                                        background: 'rgba(108,99,255,0.12)',
+                                                                        border: '1px solid rgba(108,99,255,0.3)',
+                                                                        color: '#a78bfa',
+                                                                        fontSize: 12,
+                                                                        fontWeight: 600,
+                                                                        cursor: 'pointer',
+                                                                    }}
+                                                                >
+                                                                    <Pencil size={12} />
+                                                                    Change Plan
+                                                                </button>
                                                             </div>
                                                         </div>
 
@@ -783,6 +838,126 @@ export default function UsersPage() {
                     </table>
                 </div>
             )}
+        {/* Plan Change Modal */}
+        {editPlanUserId && (
+            <div
+                style={{
+                    position: 'fixed', inset: 0, zIndex: 1000,
+                    background: 'rgba(0,0,0,0.6)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}
+                onClick={(e) => { if (e.target === e.currentTarget) setEditPlanUserId(null); }}
+            >
+                <div
+                    style={{
+                        background: 'var(--card)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 16,
+                        padding: 28,
+                        width: 440,
+                        maxWidth: '90vw',
+                        boxShadow: '0 24px 48px rgba(0,0,0,0.4)',
+                    }}
+                >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                        <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Change Subscription Plan</h3>
+                        <button
+                            onClick={() => setEditPlanUserId(null)}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted-foreground)', padding: 4 }}
+                        >
+                            <X size={18} />
+                        </button>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                        {/* Plan selector */}
+                        <div>
+                            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--muted-foreground)', display: 'block', marginBottom: 6 }}>Plan</label>
+                            <select
+                                value={planForm.planId}
+                                onChange={(e) => setPlanForm(f => ({ ...f, planId: e.target.value }))}
+                                style={{
+                                    width: '100%', padding: '8px 12px', borderRadius: 8,
+                                    background: 'var(--muted)', border: '1px solid var(--border)',
+                                    color: 'var(--foreground)', fontSize: 14,
+                                }}
+                            >
+                                <option value=''>— Select a plan —</option>
+                                {availablePlans.map((p: any) => (
+                                    <option key={p._id} value={p._id}>
+                                        {p.displayName || p.name} — {formatPrice(p.price, p.currency)}/{p.type}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        {/* Status selector */}
+                        <div>
+                            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--muted-foreground)', display: 'block', marginBottom: 6 }}>Status</label>
+                            <select
+                                value={planForm.status}
+                                onChange={(e) => setPlanForm(f => ({ ...f, status: e.target.value }))}
+                                style={{
+                                    width: '100%', padding: '8px 12px', borderRadius: 8,
+                                    background: 'var(--muted)', border: '1px solid var(--border)',
+                                    color: 'var(--foreground)', fontSize: 14,
+                                }}
+                            >
+                                <option value='active'>Active</option>
+                                <option value='trial'>Trial</option>
+                                <option value='free'>Free</option>
+                                <option value='expired'>Expired</option>
+                            </select>
+                        </div>
+
+                        {/* Expiry days (shown for active/trial) */}
+                        {(planForm.status === 'active' || planForm.status === 'trial') && (
+                            <div>
+                                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--muted-foreground)', display: 'block', marginBottom: 6 }}>Expiry (days from now)</label>
+                                <input
+                                    type='number'
+                                    min={1}
+                                    max={3650}
+                                    value={planForm.expiryDays}
+                                    onChange={(e) => setPlanForm(f => ({ ...f, expiryDays: Number(e.target.value) }))}
+                                    style={{
+                                        width: '100%', padding: '8px 12px', borderRadius: 8,
+                                        background: 'var(--muted)', border: '1px solid var(--border)',
+                                        color: 'var(--foreground)', fontSize: 14, boxSizing: 'border-box',
+                                    }}
+                                />
+                            </div>
+                        )}
+
+                        <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+                            <button
+                                onClick={savePlan}
+                                disabled={planSaving || !planForm.planId}
+                                style={{
+                                    flex: 1, padding: '10px 0', borderRadius: 10,
+                                    background: planSaving || !planForm.planId ? 'rgba(108,99,255,0.3)' : '#6c63ff',
+                                    border: 'none', color: '#fff', fontWeight: 700, fontSize: 14,
+                                    cursor: planSaving || !planForm.planId ? 'not-allowed' : 'pointer',
+                                }}
+                            >
+                                {planSaving ? 'Saving…' : 'Save Changes'}
+                            </button>
+                            <button
+                                onClick={() => setEditPlanUserId(null)}
+                                style={{
+                                    padding: '10px 20px', borderRadius: 10,
+                                    background: 'var(--muted)', border: '1px solid var(--border)',
+                                    color: 'var(--foreground)', fontWeight: 600, fontSize: 14, cursor: 'pointer',
+                                }}
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )}
+
         </div>
     );
 }
