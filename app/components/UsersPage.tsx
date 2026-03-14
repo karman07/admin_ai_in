@@ -884,7 +884,7 @@ export default function UsersPage() {
                             >
                                 <option value=''>— Select a plan —</option>
                                 {availablePlans.map((p: any) => (
-                                    <option key={p._id} value={p._id}>
+                                    <option key={p.id || p._id} value={p.id || p._id}>
                                         {p.displayName || p.name} — {formatPrice(p.price, p.currency)}/{p.type}
                                     </option>
                                 ))}
