@@ -105,7 +105,9 @@ export default function TokenUsagePage() {
         );
     }
 
-    const { totalRevenue = 0, totalAICost = 0, tokensByPlan = [], usageOverTime = [] } = stats || {};
+    const { totalRevenue: totalRevenueInr = 0, totalAICost = 0, tokensByPlan = [], usageOverTime = [] } = stats || {};
+    const EXCHANGE_RATE = 83; // 1 USD = 83 INR (Approximate)
+    const totalRevenue = totalRevenueInr / EXCHANGE_RATE;
     const profit = totalRevenue - totalAICost;
     const margin = totalRevenue > 0 ? (profit / totalRevenue) * 100 : 0;
     
@@ -198,7 +200,7 @@ export default function TokenUsagePage() {
             </div>
 
             {/* Metrics Grid - Row 2 (Efficiency Metrics) */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 32 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 32 }}>
                 <div className="glass-card" style={{ padding: 20, border: '1px solid rgba(0, 212, 170, 0.2)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                         <div className="icon-box" style={{ background: 'rgba(0, 212, 170, 0.1)', padding: 8, borderRadius: 10 }}>
@@ -231,20 +233,6 @@ export default function TokenUsagePage() {
                         <div style={{ flex: 1 }}>
                             <div style={{ color: '#94a3b8', fontSize: 12, fontWeight: 500 }}>Total Sessions</div>
                             <div style={{ fontSize: 20, fontWeight: 700, marginTop: 2 }}>{totalSessions}</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="glass-card" style={{ padding: 20, background: 'linear-gradient(135deg, rgba(108, 99, 255, 0.05) 0%, rgba(0, 212, 170, 0.05) 100%)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <div className="icon-box" style={{ background: 'rgba(108, 99, 255, 0.15)', padding: 8, borderRadius: 10 }}>
-                            <Sparkles size={20} color="#6c63ff" />
-                        </div>
-                        <div style={{ flex: 1 }}>
-                            <div style={{ color: '#94a3b8', fontSize: 12, fontWeight: 500 }}>Model Efficiency</div>
-                            <div style={{ fontSize: 20, fontWeight: 700, marginTop: 2 }}>
-                                {totalAICost > 0 ? ((profit / totalAICost) * 100).toFixed(0) : '0'}%
-                            </div>
                         </div>
                     </div>
                 </div>

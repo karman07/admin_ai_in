@@ -86,11 +86,21 @@ export default function LoginPage({
             >
                 {/* Logo */}
                 <div style={{ textAlign: 'center', marginBottom: 32 }}>
-                    <img
-                        src="/logo.png"
-                        alt="AI for Job"
-                        style={{ height: 56, width: 'auto', objectFit: 'contain', marginBottom: 12 }}
-                    />
+                    <h1
+                        style={{
+                            fontSize: 32,
+                            fontWeight: 800,
+                            background: 'linear-gradient(135deg, #6c63ff 0%, #a78bfa 100%)',
+                            WebkitBackgroundClip: 'text',
+                            backgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                            letterSpacing: '-0.02em',
+                            marginBottom: 8,
+                            fontFamily: 'system-ui, -apple-system, sans-serif'
+                        }}
+                    >
+                        AI for Job
+                    </h1>
                     <p
                         style={{
                             color: 'var(--muted-foreground)',

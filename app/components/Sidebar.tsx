@@ -98,16 +98,37 @@ export default function Sidebar({
                     minHeight: 72,
                 }}
             >
-                <img
-                    src="/logo.png"
-                    alt="AI for Job"
-                    style={{
-                        height: collapsed ? 32 : 40,
-                        width: 'auto',
-                        objectFit: 'contain',
-                        transition: 'height 0.2s ease',
-                    }}
-                />
+                {collapsed ? (
+                    <div
+                        style={{
+                            fontWeight: 800,
+                            fontSize: 22,
+                            background: 'linear-gradient(135deg, #6c63ff 0%, #a78bfa 100%)',
+                            WebkitBackgroundClip: 'text',
+                            backgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                            fontFamily: 'system-ui, -apple-system, sans-serif'
+                        }}
+                    >
+                        AJ
+                    </div>
+                ) : (
+                    <div
+                        style={{
+                            fontWeight: 800,
+                            fontSize: 20,
+                            background: 'linear-gradient(135deg, #6c63ff 0%, #a78bfa 100%)',
+                            WebkitBackgroundClip: 'text',
+                            backgroundClip: 'text',
+                            WebkitTextFillColor: 'transparent',
+                            letterSpacing: '-0.02em',
+                            whiteSpace: 'nowrap',
+                            fontFamily: 'system-ui, -apple-system, sans-serif'
+                        }}
+                    >
+                        AI for Job
+                    </div>
+                )}
             </div>
 
             {/* Navigation */}
