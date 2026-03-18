@@ -19,6 +19,7 @@ import {
     Star,
     MessageSquare,
     Mail,
+    Key,
 } from 'lucide-react';
 
 export type Page =
@@ -36,7 +37,8 @@ export type Page =
     | 'interviews'
     | 'discounts'
     | 'reviews'
-    | 'email';
+    | 'email'
+    | 'ai-keys';
 
 const navItems: { id: Page; label: string; icon: React.ReactNode; group: string }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} />, group: 'Overview' },
@@ -54,6 +56,7 @@ const navItems: { id: Page; label: string; icon: React.ReactNode; group: string 
     { id: 'ai-usage',   label: 'AI Usage',   icon: <Cpu size={18} />,           group: 'Overview' },
     { id: 'interviews', label: 'Interviews', icon: <MessageSquare size={18} />,  group: 'Overview' },
     { id: 'email',      label: 'Email',       icon: <Mail size={18} />,           group: 'Management' },
+    { id: 'ai-keys',    label: 'AI Keys',     icon: <Key size={18} />,            group: 'Management' },
 ];
 
 export default function Sidebar({

@@ -16,6 +16,7 @@ import DiscountsPage from './components/DiscountsPage';
 import InterviewChatsPage from './components/InterviewChatsPage';
 import ReviewsPage from './components/ReviewsPage';
 import EmailPage from './components/EmailPage';
+import AIKeysPage from './components/AIKeysPage';
 import LoginPage from './components/LoginPage';
 import { getAccessToken, clearAuth } from './lib/api';
 
@@ -35,6 +36,7 @@ const pages: Record<Page, React.ReactNode> = {
   discounts: <DiscountsPage />,
   reviews: <ReviewsPage />,
   email: <EmailPage />,
+  'ai-keys': <AIKeysPage />,
 };
 
 export default function Home() {

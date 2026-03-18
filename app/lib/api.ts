@@ -131,6 +131,18 @@ export const paymentsApi = {
     getAll: (limit = 20, offset = 0) => fetchApi(`payments/admin/all?limit=${limit}&offset=${offset}`),
 };
 
+// AI Config (API Keys)
+export const aiConfigApi = {
+    getKeys: () => fetchApi('ai-config/keys'),
+    addKey: (data: { provider: 'gemini' | 'groq'; label: string; value: string }) =>
+        fetchApi('ai-config/keys', { method: 'POST', body: JSON.stringify(data) }),
+    setActive: (id: string) => fetchApi(`ai-config/keys/${id}/activate`, { method: 'PATCH' }),
+    deleteKey: (id: string) => fetchApi(`ai-config/keys/${id}`, { method: 'DELETE' }),
+    getModels: () => fetchApi('ai-config/models'),
+    setActiveModel: (provider: 'gemini' | 'groq', modelId: string) =>
+        fetchApi('ai-config/models/activate', { method: 'PATCH', body: JSON.stringify({ provider, modelId }) }),
+};
+
 // Subjects
 export const subjectsApi = {
     getAll: () => fetchApi('subjects'),
