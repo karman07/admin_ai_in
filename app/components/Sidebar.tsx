@@ -18,6 +18,7 @@ import {
     Ticket,
     Star,
     MessageSquare,
+    Mail,
 } from 'lucide-react';
 
 export type Page =
@@ -35,7 +36,7 @@ export type Page =
     | 'interviews'
     | 'discounts'
     | 'reviews'
-    | 'blogs';
+    | 'email';
 
 const navItems: { id: Page; label: string; icon: React.ReactNode; group: string }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} />, group: 'Overview' },
@@ -50,9 +51,9 @@ const navItems: { id: Page; label: string; icon: React.ReactNode; group: string 
     { id: 'lessons', label: 'Lessons', icon: <GraduationCap size={18} />, group: 'Content' },
     { id: 'quizzes', label: 'Quizzes', icon: <HelpCircle size={18} />, group: 'Content' },
     { id: 'resources', label: 'Resources', icon: <FileText size={18} />, group: 'Content' },
-    { id: 'blogs', label: 'Blogs', icon: <FileText size={18} />, group: 'Content' },
     { id: 'ai-usage',   label: 'AI Usage',   icon: <Cpu size={18} />,           group: 'Overview' },
     { id: 'interviews', label: 'Interviews', icon: <MessageSquare size={18} />,  group: 'Overview' },
+    { id: 'email',      label: 'Email',       icon: <Mail size={18} />,           group: 'Management' },
 ];
 
 export default function Sidebar({
@@ -100,37 +101,16 @@ export default function Sidebar({
                     minHeight: 72,
                 }}
             >
-                {collapsed ? (
-                    <div
-                        style={{
-                            fontWeight: 800,
-                            fontSize: 22,
-                            background: 'linear-gradient(135deg, #6c63ff 0%, #a78bfa 100%)',
-                            WebkitBackgroundClip: 'text',
-                            backgroundClip: 'text',
-                            WebkitTextFillColor: 'transparent',
-                            fontFamily: 'system-ui, -apple-system, sans-serif'
-                        }}
-                    >
-                        AJ
-                    </div>
-                ) : (
-                    <div
-                        style={{
-                            fontWeight: 800,
-                            fontSize: 20,
-                            background: 'linear-gradient(135deg, #6c63ff 0%, #a78bfa 100%)',
-                            WebkitBackgroundClip: 'text',
-                            backgroundClip: 'text',
-                            WebkitTextFillColor: 'transparent',
-                            letterSpacing: '-0.02em',
-                            whiteSpace: 'nowrap',
-                            fontFamily: 'system-ui, -apple-system, sans-serif'
-                        }}
-                    >
-                        AI for Job
-                    </div>
-                )}
+                <img
+                    src="/logo.png"
+                    alt="AI for Job"
+                    style={{
+                        height: collapsed ? 32 : 40,
+                        width: 'auto',
+                        objectFit: 'contain',
+                        transition: 'height 0.2s ease',
+                    }}
+                />
             </div>
 
             {/* Navigation */}

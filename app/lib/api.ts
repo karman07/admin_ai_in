@@ -1,5 +1,9 @@
 export const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.aiforjob.ai';
 
+/** Authenticated fetch — use this for new admin API calls */
+export const fetchApiAuth = (endpoint: string, options: RequestInit = {}) =>
+    fetchApi(endpoint, options);
+
 // Auth token management
 let accessToken: string | null = null;
 
@@ -118,6 +122,7 @@ export const subscriptionsApi = {
     activate: (id: string) => fetchApi(`subscriptions/${id}/activate`, { method: 'PATCH' }),
     deactivate: (id: string) => fetchApi(`subscriptions/${id}/deactivate`, { method: 'PATCH' }),
     delete: (id: string) => fetchApi(`subscriptions/${id}`, { method: 'DELETE' }),
+    generateRazorpayPlan: (id: string) => fetchApi(`subscriptions/${id}/generate-razorpay-plan`, { method: 'POST' }),
 };
 
 // Payments (Admin)
