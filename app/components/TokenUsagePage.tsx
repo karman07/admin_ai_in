@@ -134,6 +134,8 @@ export default function TokenUsagePage() {
     const totalTokens       = tokensByPlan.reduce((a: number, c: any) => a + (c.totalTokens || 0), 0);
     const totalInputTokens  = tokensByPlan.reduce((a: number, c: any) => a + (c.totalInputTokens || 0), 0);
     const totalOutputTokens = tokensByPlan.reduce((a: number, c: any) => a + (c.totalOutputTokens || 0), 0);
+    const totalInputCost    = tokensByPlan.reduce((a: number, c: any) => a + (c.totalInputCost || 0), 0);
+    const totalOutputCost   = tokensByPlan.reduce((a: number, c: any) => a + (c.totalOutputCost || 0), 0);
     const totalSessions     = tokensByPlan.reduce((a: number, c: any) => a + (c.sessionCount || 0), 0);
     const avgTokensPerSession = totalSessions > 0 ? Math.round(totalTokens / totalSessions) : 0;
     const avgCostPerSession   = totalSessions > 0 ? totalAICost / totalSessions : 0;
@@ -169,6 +171,38 @@ export default function TokenUsagePage() {
                 <StatCard icon={<DollarSign size={20} color="#ff4d4d" />} label="Total AI Cost" value={`$${totalAICost.toFixed(4)}`} sub={`$${avgCostPerSession.toFixed(4)} per session`} subColor="#ff4d4d" />
                 <StatCard icon={<ArrowUpRight size={20} color="#00d4aa" />} label="Recovered Revenue" value={`$${totalRevenue.toFixed(2)}`} sub={`Net Profit: $${profit.toFixed(2)}`} subColor="#00d4aa" />
                 <StatCard icon={<BarChart3 size={20} color={margin > 0 ? '#00d4aa' : '#ff4d4d'} />} label="Profit Margin" value={`${margin.toFixed(1)}%`} sub={margin > 0 ? 'Profitable' : 'Loss Making'} subColor={margin > 0 ? '#00d4aa' : '#ff4d4d'} />
+            </div>
+
+            {/* Row 1b - Input/Output cost split */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+                <div className="glass-card" style={{ padding: 20, border: '1px solid rgba(108,99,255,0.25)', display: 'flex', alignItems: 'center', gap: 20 }}>
+                    <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(108,99,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <ArrowDownLeft size={20} color={INPUT_COLOR} />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Input Token Cost (Prompt)</div>
+                        <div style={{ fontSize: 24, fontWeight: 800, color: INPUT_COLOR }}>${totalInputCost.toFixed(5)}</div>
+                        <div style={{ fontSize: 11, color: '#64748b', marginTop: 3 }}>{totalAICost > 0 ? ((totalInputCost / totalAICost) * 100).toFixed(1) : 0}% of total spend · price charged per prompt token</div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: 11, color: '#64748b', marginBottom: 2 }}>Per session avg</div>
+                        <div style={{ fontSize: 16, fontWeight: 700, color: INPUT_COLOR }}>${totalSessions > 0 ? (totalInputCost / totalSessions).toFixed(5) : '0.00000'}</div>
+                    </div>
+                </div>
+                <div className="glass-card" style={{ padding: 20, border: '1px solid rgba(0,212,170,0.25)', display: 'flex', alignItems: 'center', gap: 20 }}>
+                    <div style={{ width: 40, height: 40, borderRadius: 12, background: 'rgba(0,212,170,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                        <ArrowOut size={20} color={OUTPUT_COLOR} />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>Output Token Cost (Completion)</div>
+                        <div style={{ fontSize: 24, fontWeight: 800, color: OUTPUT_COLOR }}>${totalOutputCost.toFixed(5)}</div>
+                        <div style={{ fontSize: 11, color: '#64748b', marginTop: 3 }}>{totalAICost > 0 ? ((totalOutputCost / totalAICost) * 100).toFixed(1) : 0}% of total spend · price charged per generated token</div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: 11, color: '#64748b', marginBottom: 2 }}>Per session avg</div>
+                        <div style={{ fontSize: 16, fontWeight: 700, color: OUTPUT_COLOR }}>${totalSessions > 0 ? (totalOutputCost / totalSessions).toFixed(5) : '0.00000'}</div>
+                    </div>
+                </div>
             </div>
 
             {/* Row 2 - token breakdown + efficiency */}
@@ -285,8 +319,8 @@ export default function TokenUsagePage() {
                             <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 11 }} tickFormatter={(v) => `$${v.toFixed(3)}`} />
                             <Tooltip content={<CustomTooltip />} />
                             <Area yAxisId="left" type="monotone" dataKey="tokens" name="Total Tokens" stroke="#6c63ff" strokeWidth={2} fill="url(#tokenGrad2)" dot={false} />
-                            <Line yAxisId="right" type="monotone" dataKey="cost" name="Cost ($)" stroke={COST_COLOR} strokeWidth={2.5} dot={{ r: 3, fill: COST_COLOR, stroke: '#fff', strokeWidth: 1.5 }} />
-                        </ComposedChart>
+                            <Line yAxisId="right" type="monotone" dataKey="cost" name="Cost ($)" stroke={COST_COLOR} strokeWidth={2.5} dot={{ r: 3, fill: COST_COLOR, stroke: '#fff', strokeWidth: 1.5 }} />                        <Line yAxisId="right" type="monotone" dataKey="inputCost" name="Input Cost ($)" stroke={INPUT_COLOR} strokeWidth={1.5} strokeDasharray="4 3" dot={false} />
+                        <Line yAxisId="right" type="monotone" dataKey="outputCost" name="Output Cost ($)" stroke={OUTPUT_COLOR} strokeWidth={1.5} strokeDasharray="4 3" dot={false} />                        </ComposedChart>
                     </ResponsiveContainer>
                 </div>
 
@@ -348,11 +382,11 @@ export default function TokenUsagePage() {
                         <tr>
                             <th>Plan</th>
                             <th style={{ textAlign: 'right' }}>Input Tokens</th>
+                            <th style={{ textAlign: 'right' }}>Input Cost</th>
                             <th style={{ textAlign: 'right' }}>Output Tokens</th>
-                            <th style={{ textAlign: 'right' }}>Total Tokens</th>
+                            <th style={{ textAlign: 'right' }}>Output Cost</th>
                             <th style={{ textAlign: 'right' }}>Total Cost</th>
                             <th style={{ textAlign: 'right' }}>Cost/Session</th>
-                            <th style={{ textAlign: 'right' }}>Efficiency</th>
                             <th style={{ textAlign: 'right' }}>Sessions</th>
                         </tr>
                     </thead>
@@ -381,22 +415,22 @@ export default function TokenUsagePage() {
                                         <div style={{ fontSize: 10, color: '#64748b' }}>{inPct}%</div>
                                     </td>
                                     <td style={{ textAlign: 'right' }}>
+                                        <div style={{ fontWeight: 700, color: INPUT_COLOR }}>${(p.totalInputCost || 0).toFixed(5)}</div>
+                                        <div style={{ fontSize: 10, color: '#64748b' }}>{p.totalCost > 0 ? ((p.totalInputCost || 0) / p.totalCost * 100).toFixed(0) : 0}%</div>
+                                    </td>
+                                    <td style={{ textAlign: 'right' }}>
                                         <div style={{ fontWeight: 600, color: OUTPUT_COLOR }}>{fmt(p.totalOutputTokens || 0)}</div>
                                         <div style={{ fontSize: 10, color: '#64748b' }}>{outPct}%</div>
                                     </td>
                                     <td style={{ textAlign: 'right' }}>
-                                        <div style={{ fontWeight: 700 }}>{fmt(p.totalTokens)}</div>
+                                        <div style={{ fontWeight: 700, color: OUTPUT_COLOR }}>${(p.totalOutputCost || 0).toFixed(5)}</div>
+                                        <div style={{ fontSize: 10, color: '#64748b' }}>{p.totalCost > 0 ? ((p.totalOutputCost || 0) / p.totalCost * 100).toFixed(0) : 0}%</div>
                                     </td>
                                     <td style={{ textAlign: 'right' }}>
                                         <span style={{ color: COST_COLOR, fontWeight: 700 }}>${p.totalCost.toFixed(4)}</span>
                                     </td>
                                     <td style={{ textAlign: 'right' }}>
                                         <span style={{ color: '#ffb800', fontWeight: 600 }}>${costPerSession.toFixed(5)}</span>
-                                    </td>
-                                    <td style={{ textAlign: 'right' }}>
-                                        <div style={{ display: 'inline-block', padding: '3px 8px', borderRadius: 6, background: 'rgba(0,212,170,0.1)', color: '#00d4aa', fontWeight: 700, fontSize: 11 }}>
-                                            {fmt(tPerDollar)} T/$
-                                        </div>
                                     </td>
                                     <td style={{ textAlign: 'right' }}>
                                         <span className="badge badge-purple" style={{ fontSize: 12, padding: '4px 10px' }}>{p.sessionCount}</span>
@@ -409,11 +443,11 @@ export default function TokenUsagePage() {
                         <tr style={{ background: 'rgba(108,99,255,0.06)', fontWeight: 700, borderTop: '2px solid rgba(255,255,255,0.08)' }}>
                             <td><div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Zap size={14} color="#6c63ff" />TOTAL</div></td>
                             <td style={{ textAlign: 'right', color: INPUT_COLOR }}>{fmt(totalInputTokens)}</td>
+                            <td style={{ textAlign: 'right', color: INPUT_COLOR, fontWeight: 800 }}>${totalInputCost.toFixed(5)}</td>
                             <td style={{ textAlign: 'right', color: OUTPUT_COLOR }}>{fmt(totalOutputTokens)}</td>
-                            <td style={{ textAlign: 'right', color: '#6c63ff', fontWeight: 800 }}>{fmt(totalTokens)}</td>
+                            <td style={{ textAlign: 'right', color: OUTPUT_COLOR, fontWeight: 800 }}>${totalOutputCost.toFixed(5)}</td>
                             <td style={{ textAlign: 'right', color: COST_COLOR, fontWeight: 700 }}>${totalAICost.toFixed(4)}</td>
                             <td style={{ textAlign: 'right', color: '#ffb800' }}>${avgCostPerSession.toFixed(5)}</td>
-                            <td style={{ textAlign: 'right' }}><div style={{ display: 'inline-block', padding: '3px 8px', borderRadius: 6, background: 'rgba(0,212,170,0.15)', color: '#00d4aa', fontWeight: 700, fontSize: 11 }}>{fmt(tokensPerDollar)} T/$</div></td>
                             <td style={{ textAlign: 'right', color: '#6c63ff' }}>{totalSessions}</td>
                         </tr>
                     </tfoot>
