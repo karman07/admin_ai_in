@@ -7,12 +7,14 @@ import {
     TrendingUp,
     BarChart3,
     ArrowUpRight,
-    Info,
     RefreshCw,
     Activity,
     Target,
     Gauge,
-    Sparkles
+    ArrowDownLeft,
+    ArrowUpRight as ArrowOut,
+    Layers,
+    TrendingDown,
 } from 'lucide-react';
 import {
     LineChart,
@@ -29,24 +31,51 @@ import {
     Pie,
     Legend,
     Area,
-    ComposedChart
+    AreaChart,
+    ComposedChart,
 } from 'recharts';
 import { analyticsApi, API_BASE } from '../lib/api';
 
 const COLORS = ['#6c63ff', '#00d4aa', '#ffb800', '#ff4d4d'];
+const INPUT_COLOR  = '#6c63ff';
+const OUTPUT_COLOR = '#00d4aa';
+const COST_COLOR   = '#ff4d4d';
 
-function CustomTooltip({ active, payload, label, prefix = '' }: any) {
+function fmt(n: number) {
+    if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
+    if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
+    return n.toLocaleString();
+}
+
+function CustomTooltip({ active, payload, label }: any) {
     if (!active || !payload?.length) return null;
     return (
-        <div className="glass-card" style={{ padding: '12px 16px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(15, 23, 42, 0.9)', borderRadius: 12 }}>
-            <div style={{ fontWeight: 600, color: '#f8fafc', marginBottom: 4 }}>{label}</div>
+        <div style={{ padding: '12px 16px', border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(10,15,30,0.95)', borderRadius: 12, backdropFilter: 'blur(12px)' }}>
+            <div style={{ fontWeight: 700, color: '#f8fafc', marginBottom: 8, fontSize: 13 }}>{label}</div>
             {payload.map((p: any, i: number) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
-                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: p.color || p.fill }} />
-                    <span style={{ color: '#94a3b8', fontSize: 13 }}>{p.name}:</span>
-                    <span style={{ fontWeight: 600, color: '#fff' }}>{prefix}{p.value.toLocaleString()}</span>
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: p.color || p.stroke || p.fill }} />
+                    <span style={{ color: '#94a3b8', fontSize: 12 }}>{p.name}:</span>
+                    <span style={{ fontWeight: 600, color: '#fff', fontSize: 12 }}>
+                        {p.name?.includes('Cost') || p.name?.includes('$') ? `$${Number(p.value).toFixed(5)}` : fmt(Number(p.value))}
+                    </span>
                 </div>
             ))}
+        </div>
+    );
+}
+
+function StatCard({ icon, label, value, sub, subColor = '#94a3b8', borderColor }: { icon: React.ReactNode; label: string; value: string; sub?: string; subColor?: string; borderColor?: string }) {
+    return (
+        <div className="glass-card" style={{ padding: 22, border: borderColor ? `1px solid ${borderColor}` : undefined }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    {icon}
+                </div>
+                <span style={{ fontSize: 12, fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</span>
+            </div>
+            <div style={{ fontSize: 26, fontWeight: 800, lineHeight: 1 }}>{value}</div>
+            {sub && <div style={{ fontSize: 11, fontWeight: 600, color: subColor, marginTop: 8 }}>{sub}</div>}
         </div>
     );
 }
@@ -69,23 +98,14 @@ export default function TokenUsagePage() {
 
     useEffect(() => {
         fetchData();
-
-        // Real-time synchronization for token usage and costs
         import('socket.io-client').then(({ io }) => {
             const socket = io(`${API_BASE}/analytics`, {
                 transports: ['websocket'],
                 reconnection: true,
                 query: { isAdmin: 'true' }
             });
-
-            socket.on('aiUsageUpdated', (newStats) => {
-                console.log('🔄 Real-time AI Usage Update Received');
-                setStats(newStats);
-            });
-
-            return () => {
-                socket.disconnect();
-            };
+            socket.on('aiUsageUpdated', (newStats) => setStats(newStats));
+            return () => { socket.disconnect(); };
         });
     }, []);
 
@@ -106,30 +126,34 @@ export default function TokenUsagePage() {
     }
 
     const { totalRevenue: totalRevenueInr = 0, totalAICost = 0, tokensByPlan = [], usageOverTime = [] } = stats || {};
-    const EXCHANGE_RATE = 83; // 1 USD = 83 INR (Approximate)
+    const EXCHANGE_RATE = 83;
     const totalRevenue = totalRevenueInr / EXCHANGE_RATE;
-    const profit = totalRevenue - totalAICost;
-    const margin = totalRevenue > 0 ? (profit / totalRevenue) * 100 : 0;
-    
-    // Calculate additional metrics
-    const totalTokens = tokensByPlan.reduce((acc: number, curr: any) => acc + curr.totalTokens, 0);
-    const totalSessions = tokensByPlan.reduce((acc: number, curr: any) => acc + curr.sessionCount, 0);
+    const profit       = totalRevenue - totalAICost;
+    const margin       = totalRevenue > 0 ? (profit / totalRevenue) * 100 : 0;
+
+    const totalTokens       = tokensByPlan.reduce((a: number, c: any) => a + (c.totalTokens || 0), 0);
+    const totalInputTokens  = tokensByPlan.reduce((a: number, c: any) => a + (c.totalInputTokens || 0), 0);
+    const totalOutputTokens = tokensByPlan.reduce((a: number, c: any) => a + (c.totalOutputTokens || 0), 0);
+    const totalSessions     = tokensByPlan.reduce((a: number, c: any) => a + (c.sessionCount || 0), 0);
     const avgTokensPerSession = totalSessions > 0 ? Math.round(totalTokens / totalSessions) : 0;
-    const avgCostPerSession = totalSessions > 0 ? totalAICost / totalSessions : 0;
-    const tokensPerDollar = totalAICost > 0 ? Math.round(totalTokens / totalAICost) : 0;
+    const avgCostPerSession   = totalSessions > 0 ? totalAICost / totalSessions : 0;
+    const tokensPerDollar     = totalAICost > 0 ? Math.round(totalTokens / totalAICost) : 0;
+    const inputRatio  = totalTokens > 0 ? ((totalInputTokens / totalTokens) * 100).toFixed(1) : '0';
+    const outputRatio = totalTokens > 0 ? ((totalOutputTokens / totalTokens) * 100).toFixed(1) : '0';
 
     return (
         <div style={{ padding: '24px 32px' }}>
+            {/* Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
                 <div>
-                    <h1 style={{ fontSize: 32, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <Cpu size={32} color="#6c63ff" />
+                    <h1 style={{ fontSize: 30, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <Cpu size={30} color="#6c63ff" />
                         AI Token Intelligence
                     </h1>
-                    <p style={{ color: '#94a3b8', marginTop: 4 }}>Monitor AI consumption, costs, and profit margins</p>
+                    <p style={{ color: '#64748b', marginTop: 4, fontSize: 14 }}>Input & output token breakdown, cost correlation, and profit analysis</p>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(0, 212, 170, 0.1)', padding: '6px 12px', borderRadius: 20, border: '1px solid rgba(0, 212, 170, 0.2)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(0,212,170,0.1)', padding: '6px 12px', borderRadius: 20, border: '1px solid rgba(0,212,170,0.2)' }}>
                         <div className="pulse-dot" style={{ width: 8, height: 8, borderRadius: '50%', background: '#00d4aa' }} />
                         <span style={{ fontSize: 12, fontWeight: 600, color: '#00d4aa' }}>LIVE SYNC</span>
                     </div>
@@ -139,239 +163,173 @@ export default function TokenUsagePage() {
                 </div>
             </div>
 
-            {/* Metrics Grid - Row 1 */}
+            {/* Row 1 - 4 primary KPIs */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 16 }}>
-                <div className="glass-card" style={{ padding: 24, border: '1px solid rgba(108, 99, 255, 0.2)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-                        <div className="icon-box" style={{ background: 'rgba(108, 99, 255, 0.1)', padding: 10, borderRadius: 12 }}>
-                            <Zap size={24} color="#6c63ff" />
+                <StatCard icon={<Zap size={20} color="#6c63ff" />} label="Total Tokens" value={fmt(totalTokens)} sub={`Across ${totalSessions} sessions`} subColor="#6c63ff" borderColor="rgba(108,99,255,0.25)" />
+                <StatCard icon={<DollarSign size={20} color="#ff4d4d" />} label="Total AI Cost" value={`$${totalAICost.toFixed(4)}`} sub={`$${avgCostPerSession.toFixed(4)} per session`} subColor="#ff4d4d" />
+                <StatCard icon={<ArrowUpRight size={20} color="#00d4aa" />} label="Recovered Revenue" value={`$${totalRevenue.toFixed(2)}`} sub={`Net Profit: $${profit.toFixed(2)}`} subColor="#00d4aa" />
+                <StatCard icon={<BarChart3 size={20} color={margin > 0 ? '#00d4aa' : '#ff4d4d'} />} label="Profit Margin" value={`${margin.toFixed(1)}%`} sub={margin > 0 ? 'Profitable' : 'Loss Making'} subColor={margin > 0 ? '#00d4aa' : '#ff4d4d'} />
+            </div>
+
+            {/* Row 2 - token breakdown + efficiency */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16, marginBottom: 28 }}>
+                <div className="glass-card" style={{ padding: 18, border: '1px solid rgba(108,99,255,0.25)', gridColumn: 'span 1' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <ArrowDownLeft size={16} color={INPUT_COLOR} />
+                            <span style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Input Tokens</span>
                         </div>
-                        <div style={{ color: '#00d4aa', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
-                            <TrendingUp size={14} /> Active
+                        <span style={{ fontSize: 11, fontWeight: 700, color: INPUT_COLOR, background: 'rgba(108,99,255,0.1)', padding: '2px 6px', borderRadius: 6 }}>{inputRatio}%</span>
+                    </div>
+                    <div style={{ fontSize: 22, fontWeight: 800, color: INPUT_COLOR }}>{fmt(totalInputTokens)}</div>
+                    <div style={{ marginTop: 10, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.06)' }}>
+                        <div style={{ height: '100%', borderRadius: 2, background: INPUT_COLOR, width: `${inputRatio}%`, transition: 'width 0.6s ease' }} />
+                    </div>
+                </div>
+
+                <div className="glass-card" style={{ padding: 18, border: '1px solid rgba(0,212,170,0.25)', gridColumn: 'span 1' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <ArrowOut size={16} color={OUTPUT_COLOR} />
+                            <span style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Output Tokens</span>
                         </div>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: OUTPUT_COLOR, background: 'rgba(0,212,170,0.1)', padding: '2px 6px', borderRadius: 6 }}>{outputRatio}%</span>
                     </div>
-                    <div style={{ color: '#94a3b8', fontSize: 14, fontWeight: 500 }}>Total Tokens Consumed</div>
-                    <div style={{ fontSize: 28, fontWeight: 700, marginTop: 4 }}>
-                        {totalTokens.toLocaleString()}
-                    </div>
-                    <div style={{ fontSize: 11, color: '#6c63ff', marginTop: 8, fontWeight: 600 }}>
-                        Across {totalSessions} sessions
+                    <div style={{ fontSize: 22, fontWeight: 800, color: OUTPUT_COLOR }}>{fmt(totalOutputTokens)}</div>
+                    <div style={{ marginTop: 10, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.06)' }}>
+                        <div style={{ height: '100%', borderRadius: 2, background: OUTPUT_COLOR, width: `${outputRatio}%`, transition: 'width 0.6s ease' }} />
                     </div>
                 </div>
 
-                <div className="glass-card" style={{ padding: 24 }}>
-                    <div className="icon-box" style={{ background: 'rgba(255, 184, 0, 0.1)', padding: 10, borderRadius: 12, width: 'fit-content', marginBottom: 16 }}>
-                        <DollarSign size={24} color="#ffb800" />
+                <div className="glass-card" style={{ padding: 18 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                        <Activity size={16} color="#00d4aa" />
+                        <span style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Avg / Session</span>
                     </div>
-                    <div style={{ color: '#94a3b8', fontSize: 14, fontWeight: 500 }}>Total AI Cost</div>
-                    <div style={{ fontSize: 28, fontWeight: 700, marginTop: 4, color: '#ff4d4d' }}>
-                        ${totalAICost.toFixed(4)}
-                    </div>
-                    <div style={{ fontSize: 11, color: '#ff4d4d', marginTop: 8, fontWeight: 600 }}>
-                        ${avgCostPerSession.toFixed(4)} per session
-                    </div>
+                    <div style={{ fontSize: 22, fontWeight: 800 }}>{fmt(avgTokensPerSession)}</div>
+                    <div style={{ fontSize: 11, color: '#64748b', marginTop: 6 }}>tokens per session</div>
                 </div>
 
-                <div className="glass-card" style={{ padding: 24 }}>
-                    <div className="icon-box" style={{ background: 'rgba(0, 212, 170, 0.1)', padding: 10, borderRadius: 12, width: 'fit-content', marginBottom: 16 }}>
-                        <ArrowUpRight size={24} color="#00d4aa" />
+                <div className="glass-card" style={{ padding: 18 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                        <Target size={16} color="#6c63ff" />
+                        <span style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Tokens / $</span>
                     </div>
-                    <div style={{ color: '#94a3b8', fontSize: 14, fontWeight: 500 }}>Recovered Revenue</div>
-                    <div style={{ fontSize: 28, fontWeight: 700, marginTop: 4 }}>
-                        ${totalRevenue.toFixed(2)}
-                    </div>
-                    <div style={{ fontSize: 11, color: '#00d4aa', marginTop: 8, fontWeight: 600 }}>
-                        Net Profit: ${profit.toFixed(2)}
-                    </div>
+                    <div style={{ fontSize: 22, fontWeight: 800 }}>{fmt(tokensPerDollar)}</div>
+                    <div style={{ fontSize: 11, color: '#64748b', marginTop: 6 }}>tokens per dollar spent</div>
                 </div>
 
-                <div className="glass-card" style={{ padding: 24, background: margin > 0 ? 'rgba(0, 212, 170, 0.05)' : 'rgba(255, 77, 77, 0.05)' }}>
-                    <div className="icon-box" style={{ background: margin > 0 ? 'rgba(0, 212, 170, 0.1)' : 'rgba(255, 77, 77, 0.1)', padding: 10, borderRadius: 12, width: 'fit-content', marginBottom: 16 }}>
-                        <BarChart3 size={24} color={margin > 0 ? '#00d4aa' : '#ff4d4d'} />
+                <div className="glass-card" style={{ padding: 18 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                        <Gauge size={16} color="#ffb800" />
+                        <span style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Sessions</span>
                     </div>
-                    <div style={{ color: '#94a3b8', fontSize: 14, fontWeight: 500 }}>Profit Margin</div>
-                    <div style={{ fontSize: 28, fontWeight: 700, marginTop: 4, color: margin > 0 ? '#00d4aa' : '#ff4d4d' }}>
-                        {margin.toFixed(1)}%
-                    </div>
-                    <div style={{ fontSize: 11, color: margin > 0 ? '#00d4aa' : '#ff4d4d', marginTop: 8, fontWeight: 600 }}>
-                        {margin > 0 ? 'Profitable' : 'Loss Making'}
-                    </div>
+                    <div style={{ fontSize: 22, fontWeight: 800 }}>{totalSessions}</div>
+                    <div style={{ fontSize: 11, color: '#64748b', marginTop: 6 }}>total tracked</div>
                 </div>
             </div>
 
-            {/* Metrics Grid - Row 2 (Efficiency Metrics) */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 32 }}>
-                <div className="glass-card" style={{ padding: 20, border: '1px solid rgba(0, 212, 170, 0.2)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <div className="icon-box" style={{ background: 'rgba(0, 212, 170, 0.1)', padding: 8, borderRadius: 10 }}>
-                            <Activity size={20} color="#00d4aa" />
-                        </div>
-                        <div style={{ flex: 1 }}>
-                            <div style={{ color: '#94a3b8', fontSize: 12, fontWeight: 500 }}>Avg Tokens/Session</div>
-                            <div style={{ fontSize: 20, fontWeight: 700, marginTop: 2 }}>{avgTokensPerSession.toLocaleString()}</div>
-                        </div>
+            {/* Chart Row 1: Input vs Output tokens over time (full width) */}
+            <div className="glass-card" style={{ padding: 28, marginBottom: 24 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+                    <div>
+                        <h3 style={{ fontSize: 17, fontWeight: 700, margin: 0 }}>📥 Input vs Output Tokens Over Time</h3>
+                        <p style={{ margin: '4px 0 0', fontSize: 12, color: '#64748b' }}>Daily breakdown of prompt (input) and completion (output) token usage</p>
+                    </div>
+                    <div style={{ display: 'flex', gap: 20, alignItems: 'center' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 10, height: 10, borderRadius: 2, background: INPUT_COLOR }} /><span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>Input (Prompt)</span></div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}><div style={{ width: 10, height: 10, borderRadius: 2, background: OUTPUT_COLOR }} /><span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>Output (Completion)</span></div>
                     </div>
                 </div>
-
-                <div className="glass-card" style={{ padding: 20 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <div className="icon-box" style={{ background: 'rgba(108, 99, 255, 0.1)', padding: 8, borderRadius: 10 }}>
-                            <Target size={20} color="#6c63ff" />
-                        </div>
-                        <div style={{ flex: 1 }}>
-                            <div style={{ color: '#94a3b8', fontSize: 12, fontWeight: 500 }}>Tokens per Dollar</div>
-                            <div style={{ fontSize: 20, fontWeight: 700, marginTop: 2 }}>{tokensPerDollar.toLocaleString()}</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="glass-card" style={{ padding: 20 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <div className="icon-box" style={{ background: 'rgba(255, 184, 0, 0.1)', padding: 8, borderRadius: 10 }}>
-                            <Gauge size={20} color="#ffb800" />
-                        </div>
-                        <div style={{ flex: 1 }}>
-                            <div style={{ color: '#94a3b8', fontSize: 12, fontWeight: 500 }}>Total Sessions</div>
-                            <div style={{ fontSize: 20, fontWeight: 700, marginTop: 2 }}>{totalSessions}</div>
-                        </div>
-                    </div>
-                </div>
+                <ResponsiveContainer width="100%" height={300}>
+                    <AreaChart data={usageOverTime} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
+                        <defs>
+                            <linearGradient id="inputGrad" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor={INPUT_COLOR} stopOpacity={0.35} />
+                                <stop offset="95%" stopColor={INPUT_COLOR} stopOpacity={0} />
+                            </linearGradient>
+                            <linearGradient id="outputGrad" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor={OUTPUT_COLOR} stopOpacity={0.35} />
+                                <stop offset="95%" stopColor={OUTPUT_COLOR} stopOpacity={0} />
+                            </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                        <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 11 }} dy={8} />
+                        <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 11 }} tickFormatter={fmt} />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Area type="monotone" dataKey="inputTokens" name="Input Tokens" stroke={INPUT_COLOR} strokeWidth={2.5} fill="url(#inputGrad)" dot={false} />
+                        <Area type="monotone" dataKey="outputTokens" name="Output Tokens" stroke={OUTPUT_COLOR} strokeWidth={2.5} fill="url(#outputGrad)" dot={false} />
+                    </AreaChart>
+                </ResponsiveContainer>
             </div>
 
-            {/* Charts Row */}
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 24, marginBottom: 24 }}>
-                <div className="glass-card" style={{ padding: 24 }}>
-                    <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 24, display: 'flex', alignItems: 'center', gap: 8 }}>
-                        📊 Token & Cost Tracking Over Time
-                        <Info size={16} color="#94a3b8" />
-                    </h3>
-                    <ResponsiveContainer width="100%" height={320}>
-                        <ComposedChart data={usageOverTime}>
+            {/* Chart Row 2: Cost over time + Tier breakdown */}
+            <div style={{ display: 'grid', gridTemplateColumns: '3fr 2fr', gap: 24, marginBottom: 24 }}>
+                {/* Cost Correlation Chart */}
+                <div className="glass-card" style={{ padding: 28 }}>
+                    <div style={{ marginBottom: 24 }}>
+                        <h3 style={{ fontSize: 17, fontWeight: 700, margin: 0 }}>💰 Cost Correlation Over Time</h3>
+                        <p style={{ margin: '4px 0 0', fontSize: 12, color: '#64748b' }}>Total token volume vs actual USD cost — tracks model efficiency day-by-day</p>
+                    </div>
+                    <ResponsiveContainer width="100%" height={280}>
+                        <ComposedChart data={usageOverTime} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
                             <defs>
-                                <linearGradient id="tokenGradient" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#6c63ff" stopOpacity={0.3}/>
-                                    <stop offset="95%" stopColor="#6c63ff" stopOpacity={0}/>
+                                <linearGradient id="tokenGrad2" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#6c63ff" stopOpacity={0.2} />
+                                    <stop offset="95%" stopColor="#6c63ff" stopOpacity={0} />
                                 </linearGradient>
                             </defs>
                             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                            <XAxis
-                                dataKey="date"
-                                axisLine={false}
-                                tickLine={false}
-                                tick={{ fill: '#64748b', fontSize: 11 }}
-                                dy={10}
-                            />
-                            <YAxis
-                                yAxisId="left"
-                                axisLine={false}
-                                tickLine={false}
-                                tick={{ fill: '#64748b', fontSize: 11 }}
-                            />
-                            <YAxis
-                                yAxisId="right"
-                                orientation="right"
-                                axisLine={false}
-                                tickLine={false}
-                                tick={{ fill: '#64748b', fontSize: 11 }}
-                            />
-                            <Tooltip content={<CustomTooltip prefix="$" />} />
-                            <Area
-                                yAxisId="left"
-                                type="monotone"
-                                dataKey="tokens"
-                                fill="url(#tokenGradient)"
-                                stroke="#6c63ff"
-                                strokeWidth={3}
-                                name="Tokens"
-                            />
-                            <Line
-                                yAxisId="right"
-                                type="monotone"
-                                dataKey="cost"
-                                stroke="#ff4d4d"
-                                strokeWidth={3}
-                                dot={{ r: 4, fill: '#ff4d4d', strokeWidth: 2, stroke: '#fff' }}
-                                name="Cost ($)"
-                            />
+                            <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 11 }} dy={8} />
+                            <YAxis yAxisId="left" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 11 }} tickFormatter={fmt} />
+                            <YAxis yAxisId="right" orientation="right" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 11 }} tickFormatter={(v) => `$${v.toFixed(3)}`} />
+                            <Tooltip content={<CustomTooltip />} />
+                            <Area yAxisId="left" type="monotone" dataKey="tokens" name="Total Tokens" stroke="#6c63ff" strokeWidth={2} fill="url(#tokenGrad2)" dot={false} />
+                            <Line yAxisId="right" type="monotone" dataKey="cost" name="Cost ($)" stroke={COST_COLOR} strokeWidth={2.5} dot={{ r: 3, fill: COST_COLOR, stroke: '#fff', strokeWidth: 1.5 }} />
                         </ComposedChart>
                     </ResponsiveContainer>
                 </div>
 
-                <div className="glass-card" style={{ padding: 24 }}>
-                    <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 24 }}>🎯 Usage by User Tier</h3>
-                    <ResponsiveContainer width="100%" height={320}>
+                {/* Tier donut */}
+                <div className="glass-card" style={{ padding: 28 }}>
+                    <div style={{ marginBottom: 20 }}>
+                        <h3 style={{ fontSize: 17, fontWeight: 700, margin: 0 }}>🎯 Tokens by User Tier</h3>
+                        <p style={{ margin: '4px 0 0', fontSize: 12, color: '#64748b' }}>Total token share across subscription plans</p>
+                    </div>
+                    <ResponsiveContainer width="100%" height={260}>
                         <PieChart>
-                            <Pie
-                                data={tokensByPlan}
-                                cx="50%"
-                                cy="50%"
-                                innerRadius={60}
-                                outerRadius={100}
-                                paddingAngle={5}
-                                dataKey="totalTokens"
-                                nameKey="plan"
-                                label={({
-                                    cx,
-                                    cy,
-                                    midAngle = 0,
-                                    innerRadius,
-                                    outerRadius,
-                                    percent = 0
-                                }) => {
-                                    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
-                                    const x = cx + radius * Math.cos(-midAngle * Math.PI / 180);
-                                    const y = cy + radius * Math.sin(-midAngle * Math.PI / 180);
-                                    return (
-                                        <text
-                                            x={x}
-                                            y={y}
-                                            fill="white"
-                                            textAnchor={x > cx ? 'start' : 'end'}
-                                            dominantBaseline="central"
-                                            style={{ fontSize: 13, fontWeight: 700 }}
-                                        >
-                                            {`${(percent * 100).toFixed(0)}%`}
-                                        </text>
-                                    );
+                            <Pie data={tokensByPlan} cx="50%" cy="46%" innerRadius={64} outerRadius={105} paddingAngle={4} dataKey="totalTokens" nameKey="plan"
+                                label={({ cx, cy, midAngle = 0, innerRadius, outerRadius, percent = 0 }) => {
+                                    const r = innerRadius + (outerRadius - innerRadius) * 0.5;
+                                    const x = cx + r * Math.cos(-midAngle * Math.PI / 180);
+                                    const y = cy + r * Math.sin(-midAngle * Math.PI / 180);
+                                    if (percent < 0.05) return null;
+                                    return <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" style={{ fontSize: 12, fontWeight: 700 }}>{`${(percent * 100).toFixed(0)}%`}</text>;
                                 }}
                             >
-                                {tokensByPlan.map((entry: any, index: number) => (
-                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                ))}
+                                {tokensByPlan.map((_: any, i: number) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                             </Pie>
                             <Tooltip content={<CustomTooltip />} />
-                            <Legend 
-                                verticalAlign="bottom" 
-                                height={36}
-                                formatter={(value) => <span style={{ textTransform: 'capitalize', fontWeight: 600 }}>{value}</span>}
-                            />
+                            <Legend verticalAlign="bottom" height={36} formatter={(v) => <span style={{ textTransform: 'capitalize', fontWeight: 600, fontSize: 12 }}>{v}</span>} />
                         </PieChart>
                     </ResponsiveContainer>
                 </div>
             </div>
 
-            {/* Cost Breakdown Chart */}
-            <div className="glass-card" style={{ padding: 24, marginBottom: 32 }}>
-                <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 24, display: 'flex', alignItems: 'center', gap: 8 }}>
-                    💰 Cost Breakdown by Subscription Plan
-                </h3>
-                <ResponsiveContainer width="100%" height={280}>
-                    <BarChart data={tokensByPlan} layout="vertical">
+            {/* Cost breakdown horizontal bars */}
+            <div className="glass-card" style={{ padding: 28, marginBottom: 28 }}>
+                <div style={{ marginBottom: 24 }}>
+                    <h3 style={{ fontSize: 17, fontWeight: 700, margin: 0 }}>📊 Cost Breakdown by Plan</h3>
+                    <p style={{ margin: '4px 0 0', fontSize: 12, color: '#64748b' }}>Aggregated spend per subscription tier</p>
+                </div>
+                <ResponsiveContainer width="100%" height={Math.max(tokensByPlan.length * 60, 160)}>
+                    <BarChart data={tokensByPlan} layout="vertical" margin={{ left: 8, right: 32 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" horizontal={false} />
-                        <XAxis type="number" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} />
-                        <YAxis 
-                            type="category" 
-                            dataKey="plan" 
-                            axisLine={false} 
-                            tickLine={false} 
-                            tick={{ fill: '#94a3b8', fontSize: 13, fontWeight: 600 }}
-                            width={100}
-                        />
-                        <Tooltip content={<CustomTooltip prefix="$" />} />
-                        <Bar dataKey="totalCost" fill="#ff4d4d" radius={[0, 8, 8, 0]} barSize={32} name="Total Cost">
-                            {tokensByPlan.map((entry: any, index: number) => (
-                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                            ))}
+                        <XAxis type="number" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 11 }} tickFormatter={(v) => `$${v.toFixed(4)}`} />
+                        <YAxis type="category" dataKey="plan" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 13, fontWeight: 600 }} width={90} />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Bar dataKey="totalCost" name="Total Cost ($)" radius={[0, 8, 8, 0]} barSize={28}>
+                            {tokensByPlan.map((_: any, i: number) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
                         </Bar>
                     </BarChart>
                 </ResponsiveContainer>
@@ -379,142 +337,84 @@ export default function TokenUsagePage() {
 
             {/* Detailed Table */}
             <div className="glass-card" style={{ padding: 0, overflow: 'hidden' }}>
-                <div style={{ padding: '20px 24px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h3 style={{ fontSize: 18, fontWeight: 700 }}>📈 Detailed Plan-wise Breakdown</h3>
-                    <div style={{ fontSize: 13, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <Activity size={14} />
-                        Comprehensive usage analytics by subscription tier
+                <div style={{ padding: '20px 28px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h3 style={{ fontSize: 17, fontWeight: 700, margin: 0 }}>📈 Plan-wise Breakdown</h3>
+                    <div style={{ fontSize: 12, color: '#64748b', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <Activity size={13} /> Input · Output · Cost per tier
                     </div>
                 </div>
                 <table className="data-table">
                     <thead>
                         <tr>
-                            <th>Subscription Plan</th>
-                            <th>Total Tokens</th>
-                            <th>Avg Tokens/Session</th>
-                            <th>Total Cost</th>
-                            <th>Cost/Session</th>
-                            <th>Efficiency</th>
+                            <th>Plan</th>
+                            <th style={{ textAlign: 'right' }}>Input Tokens</th>
+                            <th style={{ textAlign: 'right' }}>Output Tokens</th>
+                            <th style={{ textAlign: 'right' }}>Total Tokens</th>
+                            <th style={{ textAlign: 'right' }}>Total Cost</th>
+                            <th style={{ textAlign: 'right' }}>Cost/Session</th>
+                            <th style={{ textAlign: 'right' }}>Efficiency</th>
                             <th style={{ textAlign: 'right' }}>Sessions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {tokensByPlan.map((p: any, i: number) => {
-                            const avgTokens = Math.round(p.totalTokens / p.sessionCount);
-                            const costPerSession = p.totalCost / p.sessionCount;
-                            const planTokensPerDollar = p.totalCost > 0 ? Math.round(p.totalTokens / p.totalCost) : 0;
-                            const planShare = (p.totalTokens / totalTokens) * 100;
-                            
+                            const costPerSession   = p.sessionCount > 0 ? p.totalCost / p.sessionCount : 0;
+                            const tPerDollar       = p.totalCost > 0 ? Math.round(p.totalTokens / p.totalCost) : 0;
+                            const planShare        = totalTokens > 0 ? ((p.totalTokens / totalTokens) * 100).toFixed(1) : '0';
+                            const inPct            = p.totalTokens > 0 ? ((p.totalInputTokens || 0) / p.totalTokens * 100).toFixed(0) : '0';
+                            const outPct           = p.totalTokens > 0 ? ((p.totalOutputTokens || 0) / p.totalTokens * 100).toFixed(0) : '0';
                             return (
                                 <tr key={i} style={{ borderLeft: `3px solid ${COLORS[i % COLORS.length]}` }}>
                                     <td>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                                            <div style={{ 
-                                                width: 32, 
-                                                height: 32, 
-                                                borderRadius: 8, 
-                                                background: `${COLORS[i % COLORS.length]}20`,
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                border: `2px solid ${COLORS[i % COLORS.length]}`
-                                            }}>
-                                                <span style={{ fontSize: 12, fontWeight: 700 }}>
-                                                    {p.plan.charAt(0).toUpperCase()}
-                                                </span>
+                                            <div style={{ width: 30, height: 30, borderRadius: 8, background: `${COLORS[i % COLORS.length]}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1.5px solid ${COLORS[i % COLORS.length]}` }}>
+                                                <span style={{ fontSize: 12, fontWeight: 700 }}>{p.plan?.charAt(0)?.toUpperCase()}</span>
                                             </div>
                                             <div>
-                                                <div style={{ fontWeight: 600, textTransform: 'capitalize', fontSize: 14 }}>{p.plan}</div>
-                                                <div style={{ fontSize: 11, color: '#94a3b8' }}>{planShare.toFixed(1)}% of total</div>
+                                                <div style={{ fontWeight: 700, textTransform: 'capitalize', fontSize: 13 }}>{p.plan}</div>
+                                                <div style={{ fontSize: 10, color: '#64748b' }}>{planShare}% of total</div>
                                             </div>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div style={{ fontWeight: 600, fontSize: 15 }}>{p.totalTokens.toLocaleString()}</div>
-                                        <div style={{ fontSize: 10, color: '#6c63ff', marginTop: 2 }}>tokens</div>
-                                    </td>
-                                    <td>
-                                        <div style={{ fontWeight: 600 }}>{avgTokens.toLocaleString()}</div>
-                                        <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 2 }}>per session</div>
-                                    </td>
-                                    <td>
-                                        <span style={{ color: '#ff4d4d', fontWeight: 700, fontSize: 15 }}>
-                                            ${p.totalCost.toFixed(4)}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <span style={{ color: '#ffb800', fontWeight: 600 }}>
-                                            ${costPerSession.toFixed(5)}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <div style={{ 
-                                            display: 'inline-block',
-                                            padding: '4px 10px',
-                                            borderRadius: 6,
-                                            background: 'rgba(0, 212, 170, 0.1)',
-                                            color: '#00d4aa',
-                                            fontWeight: 700,
-                                            fontSize: 12
-                                        }}>
-                                            {planTokensPerDollar.toLocaleString()} T/$
                                         </div>
                                     </td>
                                     <td style={{ textAlign: 'right' }}>
-                                        <span className="badge badge-purple" style={{ fontSize: 13, padding: '6px 14px' }}>
-                                            {p.sessionCount}
-                                        </span>
+                                        <div style={{ fontWeight: 600, color: INPUT_COLOR }}>{fmt(p.totalInputTokens || 0)}</div>
+                                        <div style={{ fontSize: 10, color: '#64748b' }}>{inPct}%</div>
+                                    </td>
+                                    <td style={{ textAlign: 'right' }}>
+                                        <div style={{ fontWeight: 600, color: OUTPUT_COLOR }}>{fmt(p.totalOutputTokens || 0)}</div>
+                                        <div style={{ fontSize: 10, color: '#64748b' }}>{outPct}%</div>
+                                    </td>
+                                    <td style={{ textAlign: 'right' }}>
+                                        <div style={{ fontWeight: 700 }}>{fmt(p.totalTokens)}</div>
+                                    </td>
+                                    <td style={{ textAlign: 'right' }}>
+                                        <span style={{ color: COST_COLOR, fontWeight: 700 }}>${p.totalCost.toFixed(4)}</span>
+                                    </td>
+                                    <td style={{ textAlign: 'right' }}>
+                                        <span style={{ color: '#ffb800', fontWeight: 600 }}>${costPerSession.toFixed(5)}</span>
+                                    </td>
+                                    <td style={{ textAlign: 'right' }}>
+                                        <div style={{ display: 'inline-block', padding: '3px 8px', borderRadius: 6, background: 'rgba(0,212,170,0.1)', color: '#00d4aa', fontWeight: 700, fontSize: 11 }}>
+                                            {fmt(tPerDollar)} T/$
+                                        </div>
+                                    </td>
+                                    <td style={{ textAlign: 'right' }}>
+                                        <span className="badge badge-purple" style={{ fontSize: 12, padding: '4px 10px' }}>{p.sessionCount}</span>
                                     </td>
                                 </tr>
                             );
                         })}
                     </tbody>
                     <tfoot>
-                        <tr style={{ background: 'rgba(108, 99, 255, 0.05)', fontWeight: 700, borderTop: '2px solid rgba(255,255,255,0.1)' }}>
-                            <td>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <Zap size={16} color="#6c63ff" />
-                                    TOTAL
-                                </div>
-                            </td>
-                            <td>
-                                <div style={{ fontWeight: 700, fontSize: 15, color: '#6c63ff' }}>
-                                    {totalTokens.toLocaleString()}
-                                </div>
-                            </td>
-                            <td>
-                                <div style={{ fontWeight: 700 }}>
-                                    {avgTokensPerSession.toLocaleString()}
-                                </div>
-                            </td>
-                            <td>
-                                <span style={{ color: '#ff4d4d', fontWeight: 700, fontSize: 15 }}>
-                                    ${totalAICost.toFixed(4)}
-                                </span>
-                            </td>
-                            <td>
-                                <span style={{ color: '#ffb800', fontWeight: 700 }}>
-                                    ${avgCostPerSession.toFixed(5)}
-                                </span>
-                            </td>
-                            <td>
-                                <div style={{ 
-                                    display: 'inline-block',
-                                    padding: '4px 10px',
-                                    borderRadius: 6,
-                                    background: 'rgba(0, 212, 170, 0.15)',
-                                    color: '#00d4aa',
-                                    fontWeight: 700,
-                                    fontSize: 12
-                                }}>
-                                    {tokensPerDollar.toLocaleString()} T/$
-                                </div>
-                            </td>
-                            <td style={{ textAlign: 'right' }}>
-                                <span style={{ fontSize: 15, color: '#6c63ff' }}>
-                                    {totalSessions}
-                                </span>
-                            </td>
+                        <tr style={{ background: 'rgba(108,99,255,0.06)', fontWeight: 700, borderTop: '2px solid rgba(255,255,255,0.08)' }}>
+                            <td><div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Zap size={14} color="#6c63ff" />TOTAL</div></td>
+                            <td style={{ textAlign: 'right', color: INPUT_COLOR }}>{fmt(totalInputTokens)}</td>
+                            <td style={{ textAlign: 'right', color: OUTPUT_COLOR }}>{fmt(totalOutputTokens)}</td>
+                            <td style={{ textAlign: 'right', color: '#6c63ff', fontWeight: 800 }}>{fmt(totalTokens)}</td>
+                            <td style={{ textAlign: 'right', color: COST_COLOR, fontWeight: 700 }}>${totalAICost.toFixed(4)}</td>
+                            <td style={{ textAlign: 'right', color: '#ffb800' }}>${avgCostPerSession.toFixed(5)}</td>
+                            <td style={{ textAlign: 'right' }}><div style={{ display: 'inline-block', padding: '3px 8px', borderRadius: 6, background: 'rgba(0,212,170,0.15)', color: '#00d4aa', fontWeight: 700, fontSize: 11 }}>{fmt(tokensPerDollar)} T/$</div></td>
+                            <td style={{ textAlign: 'right', color: '#6c63ff' }}>{totalSessions}</td>
                         </tr>
                     </tfoot>
                 </table>
@@ -522,3 +422,4 @@ export default function TokenUsagePage() {
         </div>
     );
 }
+
