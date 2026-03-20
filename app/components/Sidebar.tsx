@@ -20,6 +20,7 @@ import {
     MessageSquare,
     Mail,
     Key,
+    Building2,
 } from 'lucide-react';
 
 export type Page =
@@ -38,7 +39,9 @@ export type Page =
     | 'discounts'
     | 'reviews'
     | 'email'
-    | 'ai-keys';
+    | 'ai-keys'
+    | 'universities'
+    | 'university-portal';
 
 const navItems: { id: Page; label: string; icon: React.ReactNode; group: string }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} />, group: 'Overview' },
@@ -57,6 +60,8 @@ const navItems: { id: Page; label: string; icon: React.ReactNode; group: string 
     { id: 'interviews', label: 'Interviews', icon: <MessageSquare size={18} />,  group: 'Overview' },
     { id: 'email',      label: 'Email',       icon: <Mail size={18} />,           group: 'Management' },
     { id: 'ai-keys',    label: 'AI Keys',     icon: <Key size={18} />,            group: 'Management' },
+    { id: 'universities', label: 'Universities', icon: <GraduationCap size={18} />,   group: 'Management' },
+    { id: 'university-portal', label: 'University Portal', icon: <Building2 size={18} />, group: 'Management' },
 ];
 
 export default function Sidebar({

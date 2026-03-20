@@ -148,6 +148,15 @@ export default function UsersPage() {
         }
     };
 
+    const verifyUser = async (userId: string, field: 'isEmailVerified' | 'isPhoneVerified', value: boolean) => {
+        try {
+            const updated = await usersApi.verify(userId, { [field]: value });
+            setUsers(prev => prev.map(u => u._id === userId ? { ...u, ...updated } : u));
+        } catch (e: any) {
+            alert(e?.message || 'Failed to update verification');
+        }
+    };
+
     // Filter and sort
     const filtered = users
         .filter((u) => {
@@ -809,6 +818,22 @@ export default function UsersPage() {
                                                                     <span style={{ fontWeight: 600, color: u.isEmailVerified ? '#4ade80' : '#f87171' }}>
                                                                         {u.isEmailVerified ? 'Yes' : 'No'}
                                                                     </span>
+                                                                    <button
+                                                                        onClick={() => verifyUser(u._id, 'isEmailVerified', !u.isEmailVerified)}
+                                                                        style={{
+                                                                            marginLeft: 8,
+                                                                            padding: '2px 8px',
+                                                                            borderRadius: 6,
+                                                                            fontSize: 10,
+                                                                            fontWeight: 700,
+                                                                            cursor: 'pointer',
+                                                                            border: u.isEmailVerified ? '1px solid rgba(248,113,113,0.3)' : '1px solid rgba(74,222,128,0.3)',
+                                                                            background: u.isEmailVerified ? 'rgba(248,113,113,0.08)' : 'rgba(74,222,128,0.08)',
+                                                                            color: u.isEmailVerified ? '#f87171' : '#4ade80',
+                                                                        }}
+                                                                    >
+                                                                        {u.isEmailVerified ? 'Revoke' : '✓ Verify'}
+                                                                    </button>
                                                                 </div>
                                                                 <div>
                                                                     <span style={{ color: 'var(--muted-foreground)' }}>Phone number: </span>
@@ -819,6 +844,24 @@ export default function UsersPage() {
                                                                     <span style={{ fontWeight: 600, color: u.isPhoneVerified ? '#4ade80' : '#f87171' }}>
                                                                         {u.phoneNumber ? (u.isPhoneVerified ? 'Yes' : 'No') : 'Not added'}
                                                                     </span>
+                                                                    {u.phoneNumber && (
+                                                                        <button
+                                                                            onClick={() => verifyUser(u._id, 'isPhoneVerified', !u.isPhoneVerified)}
+                                                                            style={{
+                                                                                marginLeft: 8,
+                                                                                padding: '2px 8px',
+                                                                                borderRadius: 6,
+                                                                                fontSize: 10,
+                                                                                fontWeight: 700,
+                                                                                cursor: 'pointer',
+                                                                                border: u.isPhoneVerified ? '1px solid rgba(248,113,113,0.3)' : '1px solid rgba(74,222,128,0.3)',
+                                                                                background: u.isPhoneVerified ? 'rgba(248,113,113,0.08)' : 'rgba(74,222,128,0.08)',
+                                                                                color: u.isPhoneVerified ? '#f87171' : '#4ade80',
+                                                                            }}
+                                                                        >
+                                                                            {u.isPhoneVerified ? 'Revoke' : '✓ Verify'}
+                                                                        </button>
+                                                                    )}
                                                                 </div>
                                                                 <div>
                                                                     <span style={{ color: 'var(--muted-foreground)' }}>Joined: </span>

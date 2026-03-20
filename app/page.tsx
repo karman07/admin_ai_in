@@ -17,6 +17,8 @@ import InterviewChatsPage from './components/InterviewChatsPage';
 import ReviewsPage from './components/ReviewsPage';
 import EmailPage from './components/EmailPage';
 import AIKeysPage from './components/AIKeysPage';
+import UniversitiesPage from './components/UniversitiesPage';
+import UniversityPortalPage from './components/UniversityPortalPage';
 import LoginPage from './components/LoginPage';
 import { getAccessToken, clearAuth } from './lib/api';
 
@@ -37,6 +39,8 @@ const pages: Record<Page, React.ReactNode> = {
   reviews: <ReviewsPage />,
   email: <EmailPage />,
   'ai-keys': <AIKeysPage />,
+  universities: <UniversitiesPage />,
+  'university-portal': <UniversityPortalPage />,
 };
 
 export default function Home() {

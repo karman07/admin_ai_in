@@ -99,6 +99,8 @@ export const usersApi = {
     getById: (id: string) => fetchApi(`users/${id}`),
     updatePlan: (id: string, data: { planId?: string; status: string; expiryDays?: number }) =>
         fetchApi(`users/admin/${id}/plan`, { method: 'PATCH', body: JSON.stringify(data) }),
+    verify: (id: string, data: { isEmailVerified?: boolean; isPhoneVerified?: boolean }) =>
+        fetchApi(`users/admin/${id}/verify`, { method: 'PATCH', body: JSON.stringify(data) }),
 };
 
 // Analytics
@@ -212,6 +214,14 @@ export const reviewsApi = {
     flag: (id: string, flag: string) => fetchApi(`reviews/admin/${id}/flag`, { method: 'PATCH', body: JSON.stringify({ flag }) }),
     pin: (id: string, isPinned: boolean) => fetchApi(`reviews/admin/${id}/pin`, { method: 'PATCH', body: JSON.stringify({ isPinned }) }),
     delete: (id: string) => fetchApi(`reviews/admin/${id}`, { method: 'DELETE' }),
+};
+
+// Universities (Admin)
+export const universitiesApi = {
+    getAll: () => fetchApi('universities'),
+    create: (data: any) => fetchApi('universities', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: any) => fetchApi(`universities/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+    delete: (id: string) => fetchApi(`universities/${id}`, { method: 'DELETE' }),
 };
 
 // Interview Results (Admin)
