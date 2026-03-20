@@ -21,6 +21,8 @@ import {
     ExternalLink,
     Pencil,
     X,
+    Phone,
+    PhoneCall,
 } from 'lucide-react';
 import { usersApi, subscriptionsApi, API_BASE } from '../lib/api';
 
@@ -32,6 +34,8 @@ interface UserData {
     company?: string;
     industry?: string;
     isEmailVerified: boolean;
+    phoneNumber?: string;
+    isPhoneVerified?: boolean;
     profileImageUrl?: string;
     bio?: string;
     location?: string;
@@ -178,6 +182,7 @@ export default function UsersPage() {
         expired: users.filter((u) => u.subscriptionStatus === 'expired').length,
         trial: users.filter((u) => u.subscriptionStatus === 'trial').length,
         verified: users.filter((u) => u.isEmailVerified).length,
+        phoneVerified: users.filter((u) => u.isPhoneVerified).length,
         admins: users.filter((u) => u.role === 'admin').length,
     };
 
@@ -374,6 +379,7 @@ export default function UsersPage() {
                                     {sortField === 'createdAt' &&
                                         (sortDir === 'asc' ? <ChevronUp size={12} style={{ display: 'inline' }} /> : <ChevronDown size={12} style={{ display: 'inline' }} />)}
                                 </th>
+                                <th>Phone</th>
                                 <th>Status</th>
                             </tr>
                         </thead>
@@ -539,6 +545,30 @@ export default function UsersPage() {
                                                 </div>
                                             </td>
                                             <td>
+                                                {u.phoneNumber ? (
+                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                                        <div style={{ fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                                            <Phone size={10} color="var(--muted-foreground)" />
+                                                            {u.phoneNumber}
+                                                        </div>
+                                                        {u.isPhoneVerified ? (
+                                                            <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 4, background: 'rgba(74,222,128,0.1)', color: '#4ade80', fontWeight: 700, width: 'fit-content' }}>
+                                                                ✓ Verified
+                                                            </span>
+                                                        ) : (
+                                                            <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 4, background: 'rgba(248,113,113,0.1)', color: '#f87171', fontWeight: 700, width: 'fit-content' }}>
+                                                                Unverified
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                                        <XCircle size={13} color="#94a3b8" />
+                                                        <span style={{ fontSize: 11, color: '#94a3b8' }}>Not added</span>
+                                                    </div>
+                                                )}
+                                            </td>
+                                            <td>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                                     {u.isEmailVerified ? (
                                                         <CheckCircle2 size={16} color="#4ade80" />
@@ -571,7 +601,7 @@ export default function UsersPage() {
                                         {/* Expanded Row */}
                                         {isExpanded && (
                                             <tr>
-                                                <td colSpan={7} style={{ padding: 0 }}>
+                                                <td colSpan={8} style={{ padding: 0 }}>
                                                     <div
                                                         style={{
                                                             padding: '16px 24px',
@@ -778,6 +808,16 @@ export default function UsersPage() {
                                                                     <span style={{ color: 'var(--muted-foreground)' }}>Email verified: </span>
                                                                     <span style={{ fontWeight: 600, color: u.isEmailVerified ? '#4ade80' : '#f87171' }}>
                                                                         {u.isEmailVerified ? 'Yes' : 'No'}
+                                                                    </span>
+                                                                </div>
+                                                                <div>
+                                                                    <span style={{ color: 'var(--muted-foreground)' }}>Phone number: </span>
+                                                                    <span style={{ fontWeight: 600 }}>{u.phoneNumber || '—'}</span>
+                                                                </div>
+                                                                <div>
+                                                                    <span style={{ color: 'var(--muted-foreground)' }}>Phone verified: </span>
+                                                                    <span style={{ fontWeight: 600, color: u.isPhoneVerified ? '#4ade80' : '#f87171' }}>
+                                                                        {u.phoneNumber ? (u.isPhoneVerified ? 'Yes' : 'No') : 'Not added'}
                                                                     </span>
                                                                 </div>
                                                                 <div>
