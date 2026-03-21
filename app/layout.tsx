@@ -19,8 +19,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" data-theme="dark" style={{ colorScheme: 'dark' }}>
-      <body className={`${inter.variable} antialiased`} style={{ fontFamily: "var(--font-geist-sans, 'Inter', system-ui, sans-serif)" }}>
+    <html lang="en" data-theme="dark" style={{ colorScheme: 'dark' }} suppressHydrationWarning>
+      <body className={`${inter.variable} antialiased`} style={{ fontFamily: "var(--font-geist-sans, 'Inter', system-ui, sans-serif)" }} suppressHydrationWarning>
         {children}
       </body>
     </html>

@@ -103,15 +103,16 @@ function UniversityList({
     );
 
     return (
-        <div className="space-y-5">
+        <div>
             {/* search */}
-            <div className="relative max-w-sm">
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+            <div className="relative w-full md:max-w-sm" style={{ marginBottom: 24 }}>
+                <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                 <input
                     value={search}
                     onChange={e => setSearch(e.target.value)}
                     placeholder="Search universities…"
-                    className="pl-9 pr-4 py-2 text-sm bg-slate-800/60 border border-slate-700 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500/40 w-full"
+                    className="form-input w-full"
+                    style={{ paddingLeft: 40 }}
                 />
             </div>
 
@@ -288,9 +289,9 @@ function UniversityDetail({
     };
 
     return (
-        <div className="space-y-6">
+        <div>
             {/* back + header */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4" style={{ marginBottom: 24 }}>
                 <button
                     onClick={onBack}
                     className="flex items-center gap-1.5 text-sm text-slate-400 hover:text-white transition-colors"
@@ -326,7 +327,7 @@ function UniversityDetail({
             ) : (
                 <>
                     {/* stat cards */}
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4" style={{ marginBottom: 24 }}>
                         {statCards.map(card => (
                             <div key={card.label} className="glass-card" style={{ padding: '20px 22px' }}>
                                 <card.icon size={18} className={`mb-3 ${iconColorMap[card.color]}`} />
@@ -337,15 +338,16 @@ function UniversityDetail({
                     </div>
 
                     {/* tabs */}
-                    <div className="flex items-center gap-1 bg-slate-800/60 rounded-2xl p-1 w-fit">
+                    <div className="flex items-center gap-2 bg-slate-800/60 rounded-2xl p-1.5 w-fit" style={{ marginBottom: 32 }}>
                         {(['students', 'teachers'] as const).map(tab => (
                             <button
                                 key={tab}
                                 onClick={() => setActiveTab(tab)}
-                                className={`px-4 py-2 rounded-xl text-sm font-semibold capitalize transition-all ${activeTab === tab ? 'bg-purple-600 text-white shadow' : 'text-slate-400 hover:text-white'}`}
+                                className={`rounded-xl text-sm font-semibold capitalize transition-all ${activeTab === tab ? 'bg-purple-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
+                                style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '8px' }}
                             >
                                 {tab}
-                                <span className={`ml-1.5 text-[10px] font-black px-1.5 py-0.5 rounded-full ${activeTab === tab ? 'bg-white/20 text-white' : 'bg-slate-700 text-slate-400'}`}>
+                                <span className={`text-[10px] font-black rounded-full ${activeTab === tab ? 'bg-white/20 text-white' : 'bg-slate-700 text-slate-400'}`} style={{ padding: '4px 8px' }}>
                                     {tab === 'students' ? students.length : teachers.length}
                                 </span>
                             </button>
@@ -355,15 +357,16 @@ function UniversityDetail({
                     {/* ── Students tab ── */}
                     {activeTab === 'students' && (
                         <div className="glass-card overflow-hidden" style={{ padding: 0 }}>
-                            <div className="px-6 py-4 border-b border-slate-800 flex items-center gap-4">
+                            <div className="px-6 py-4 border-b border-slate-800 flex flex-col md:flex-row md:items-center gap-4">
                                 <h3 className="font-bold text-white flex-1">Students</h3>
-                                <div className="relative">
-                                    <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+                                <div className="relative w-full md:w-60">
+                                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                                     <input
                                         value={search}
                                         onChange={e => setSearch(e.target.value)}
                                         placeholder="Search…"
-                                        className="pl-8 pr-4 py-1.5 text-sm bg-slate-800 border border-slate-700 rounded-xl text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500/40 w-60"
+                                        className="form-input w-full md:w-60"
+                                        style={{ paddingLeft: 36 }}
                                     />
                                 </div>
                             </div>
@@ -572,9 +575,9 @@ export default function UniversityPortalPage() {
     };
 
     return (
-        <div style={{ padding: '24px 32px' }} className="space-y-6 animate-fadeIn">
+        <div className="px-5 py-6 md:px-8 md:py-8 animate-fadeIn">
             {/* header */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between" style={{ marginBottom: 28 }}>
                 <div className="flex items-center gap-3">
                     <div className="w-11 h-11 bg-gradient-to-br from-purple-600 to-violet-700 rounded-2xl flex items-center justify-center shadow-lg shadow-purple-500/20">
                         <GraduationCap size={22} className="text-white" />

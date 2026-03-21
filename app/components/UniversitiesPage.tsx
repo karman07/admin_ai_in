@@ -126,10 +126,10 @@ export default function UniversitiesPage() {
     const activeCount = universities.filter(u => u.isActive).length;
 
     return (
-        <div style={{ padding: '24px 32px' }} className="space-y-6 animate-fadeIn">
+        <div className="px-5 py-6 md:px-8 md:py-8 animate-fadeIn">
 
             {/* ── Header ── */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between" style={{ marginBottom: 28 }}>
                 <div className="flex items-center gap-3">
                     <div className="w-11 h-11 bg-gradient-to-br from-purple-600 to-violet-700 rounded-2xl flex items-center justify-center shadow-lg shadow-purple-500/20">
                         <GraduationCap size={22} className="text-white" />
@@ -154,7 +154,7 @@ export default function UniversitiesPage() {
             </div>
 
             {/* ── Stat cards ── */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-3 gap-4" style={{ marginBottom: 28 }}>
                 {[
                     { label: 'Total Universities', value: universities.length, color: 'purple', icon: Building2 },
                     { label: 'Active Domains', value: activeCount, color: 'green', icon: ShieldCheck },
@@ -165,8 +165,8 @@ export default function UniversitiesPage() {
                             <p className="text-[11px] font-semibold text-slate-500 mb-2 uppercase tracking-widest">{s.label}</p>
                             <p className="text-3xl font-bold text-white leading-none">{s.value}</p>
                         </div>
-                        <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                            <s.icon size={22} className={s.color === 'purple' ? 'text-purple-400' : s.color === 'green' ? 'text-green-400' : 'text-amber-400'} />
+                        <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: s.color === 'purple' ? 'rgba(108, 99, 255, 0.1)' : s.color === 'green' ? 'rgba(0, 212, 170, 0.1)' : 'rgba(255, 167, 38, 0.1)' }}>
+                            <s.icon size={22} className={s.color === 'purple' ? 'text-purple-400' : s.color === 'green' ? 'text-[#00d4aa]' : 'text-amber-400'} />
                         </div>
                     </div>
                 ))}
@@ -193,24 +193,24 @@ export default function UniversitiesPage() {
                     <p className="text-sm mt-1">Click "Add University" to get started.</p>
                 </div>
             ) : (
-                <div className="glass-card animate-fadeIn overflow-hidden">
-                    <div style={{ overflowX: 'auto' }}>
-                        <table className="data-table">
+                <div className="glass-card animate-fadeIn overflow-hidden" style={{ padding: '24px' }}>
+                    <div style={{ overflowX: 'auto', margin: '0 -8px' }}>
+                        <table className="data-table w-full">
                             <thead>
                                 <tr>
-                                    <th style={{ paddingLeft: 24 }}>University</th>
+                                    <th className="custom-margin-left">University</th>
                                     <th>Domain</th>
                                     <th className="text-center">Resumes</th>
                                     <th className="text-center">Interviews</th>
                                     <th className="text-center">Status</th>
                                     <th>Features</th>
-                                    <th className="text-right" style={{ paddingRight: 24 }}>Actions</th>
+                                    <th className="text-right custom-margin-right">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {universities.map(u => (
                                     <tr key={u._id} className="group">
-                                        <td style={{ paddingLeft: 24 }}>
+                                        <td className="custom-margin-left">
                                             <div className="flex items-center gap-3">
                                                 <UniAvatar name={u.name} domain={u.domain} logoUrl={u.logoUrl} />
                                                 <div>
@@ -247,17 +247,17 @@ export default function UniversitiesPage() {
                                             </div>
                                         </td>
                                         <td>
-                                            <div className="flex flex-wrap gap-1">
+                                            <div className="flex flex-wrap gap-1.5">
                                                 {(u.allowedFeatures ?? []).length === 0 ? (
                                                     <span className="text-slate-600">—</span>
                                                 ) : (u.allowedFeatures ?? []).map(f => (
-                                                    <span key={f} className="inline-flex items-center gap-1 text-[10px] font-semibold bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 px-2 py-0.5 rounded-full">
-                                                        {f === 'jobAlerts' ? <><Bell size={9} /> Job Alerts</> : f === 'matchResume' ? <><Sparkles size={9} /> Match Resume</> : f}
+                                                    <span key={f} className="badge badge-purple text-[10px] font-semibold flex items-center gap-1 px-2 py-1">
+                                                        {f === 'jobAlerts' ? <><Bell size={10} /> Job Alerts</> : f === 'matchResume' ? <><Sparkles size={10} /> Match Resume</> : f}
                                                     </span>
                                                 ))}
                                             </div>
                                         </td>
-                                        <td style={{ paddingRight: 24 }}>
+                                        <td className="custom-margin-right">
                                             <div className="flex items-center justify-end gap-1 md:opacity-0 group-hover:opacity-100 transition-opacity duration-150">
                                                 <button
                                                     onClick={() => openEdit(u)}
@@ -285,8 +285,8 @@ export default function UniversitiesPage() {
 
             {/* ── Create / Edit Modal ── */}
             {showForm && (
-                <div className="modal-overlay" onClick={() => setShowForm(false)}>
-                    <div className="modal-content max-w-lg" onClick={e => e.stopPropagation()}>
+                <div className="modal-overlay flex items-center justify-center p-4 fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm" onClick={() => setShowForm(false)}>
+                    <div className="modal-content w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl m-auto shadow-2xl relative" style={{ padding: 32 }} onClick={e => e.stopPropagation()}>
                         {/* Modal header */}
                         <div className="flex items-center justify-between pb-5 border-b border-slate-800">
                             <div className="flex items-center gap-3">
@@ -412,8 +412,8 @@ export default function UniversitiesPage() {
 
             {/* ── Delete confirm ── */}
             {deleteId && (
-                <div className="modal-overlay">
-                    <div className="modal-content max-w-sm p-6 text-center">
+                <div className="modal-overlay flex items-center justify-center p-4 fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm">
+                    <div className="modal-content w-full max-w-sm bg-slate-900 border border-slate-800 rounded-2xl m-auto text-center shadow-2xl relative" style={{ padding: 32 }}>
                         <div className="w-14 h-14 bg-red-950/30 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-red-900/50">
                             <Trash2 size={24} className="text-red-400" />
                         </div>
