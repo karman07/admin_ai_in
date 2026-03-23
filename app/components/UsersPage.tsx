@@ -98,6 +98,7 @@ export default function UsersPage() {
     const [expandedUser, setExpandedUser] = useState<string | null>(null);
     const [sortField, setSortField] = useState<'createdAt' | 'name' | 'subscriptionStatus'>('createdAt');
     const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+    const [emailFilter, setEmailFilter] = useState<'all' | 'unverified'>('all');
 
     // Plan edit modal state
     const [editPlanUserId, setEditPlanUserId] = useState<string | null>(null);
@@ -166,7 +167,8 @@ export default function UsersPage() {
                 u.company?.toLowerCase().includes(search.toLowerCase()) ||
                 u.location?.toLowerCase().includes(search.toLowerCase());
             const matchStatus = statusFilter === 'all' || u.subscriptionStatus === statusFilter;
-            return matchSearch && matchStatus;
+            const matchEmail = emailFilter === 'all' || (emailFilter === 'unverified' && !u.isEmailVerified);
+            return matchSearch && matchStatus && matchEmail;
         })
         .sort((a, b) => {
             let cmp = 0;
@@ -191,6 +193,7 @@ export default function UsersPage() {
         expired: users.filter((u) => u.subscriptionStatus === 'expired').length,
         trial: users.filter((u) => u.subscriptionStatus === 'trial').length,
         verified: users.filter((u) => u.isEmailVerified).length,
+        unverified: users.filter((u) => !u.isEmailVerified).length,
         phoneVerified: users.filter((u) => u.isPhoneVerified).length,
         admins: users.filter((u) => u.role === 'admin').length,
     };
@@ -269,6 +272,12 @@ export default function UsersPage() {
                         icon: <CheckCircle2 size={18} color="#00d4aa" />,
                         color: 'teal',
                     },
+                    {
+                        label: 'Unverified',
+                        value: stats.unverified,
+                        icon: <XCircle size={18} color="#fbbf24" />,
+                        color: 'amber',
+                    },
                     { label: 'Admins', value: stats.admins, icon: <Shield size={18} color="#ffa726" />, color: 'amber' },
                 ].map((stat, i) => (
                     <div
@@ -332,7 +341,7 @@ export default function UsersPage() {
                         style={{ paddingLeft: 36, width: '100%' }}
                     />
                 </div>
-                <div style={{ display: 'flex', gap: 6 }}>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                     {[
                         { value: 'all', label: 'All' },
                         { value: 'active', label: 'Subscribed' },
@@ -348,6 +357,14 @@ export default function UsersPage() {
                             {f.label}
                         </button>
                     ))}
+                    <button
+                        className={`tab-btn ${emailFilter === 'unverified' ? 'active' : ''}`}
+                        onClick={() => setEmailFilter(emailFilter === 'unverified' ? 'all' : 'unverified')}
+                        style={emailFilter === 'unverified' ? {} : { borderColor: 'rgba(251,191,36,0.35)', color: '#fbbf24' }}
+                    >
+                        <XCircle size={12} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
+                        Unverified ({stats.unverified})
+                    </button>
                 </div>
             </div>
 
@@ -399,7 +416,11 @@ export default function UsersPage() {
                                 return (
                                     <React.Fragment key={u._id}>
                                         <tr
-                                            style={{ cursor: 'pointer' }}
+                                            style={{
+                                                cursor: 'pointer',
+                                                background: !u.isEmailVerified ? 'rgba(251,191,36,0.04)' : undefined,
+                                                borderLeft: !u.isEmailVerified ? '3px solid rgba(251,191,36,0.5)' : '3px solid transparent',
+                                            }}
                                             onClick={() => setExpandedUser(isExpanded ? null : u._id)}
                                         >
                                             <td>
