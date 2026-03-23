@@ -19,6 +19,9 @@ import EmailPage from './components/EmailPage';
 import AIKeysPage from './components/AIKeysPage';
 import UniversitiesPage from './components/UniversitiesPage';
 import UniversityPortalPage from './components/UniversityPortalPage';
+import BlogsPage from './components/BlogsPage';
+import JobListingPage from './components/JobListingPage';
+import AIUsagePage from './components/AIUsagePage';
 import LoginPage from './components/LoginPage';
 import { getAccessToken, clearAuth } from './lib/api';
 
@@ -41,6 +44,9 @@ const pages: Record<Page, React.ReactNode> = {
   'ai-keys': <AIKeysPage />,
   universities: <UniversitiesPage />,
   'university-portal': <UniversityPortalPage />,
+  blogs: <BlogsPage />,
+  'job-listings': <JobListingPage />,
+  'ai-stats': <AIUsagePage />,
 };
 
 export default function Home() {
