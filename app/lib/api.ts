@@ -46,7 +46,31 @@ async function fetchApi(endpoint: string, options: RequestInit = {}) {
         ...options,
         headers,
     });
-    if (res.status === 401) {
+    if (res.status === 401 && !(options as any)._retry) {
+        const userStr = typeof window !== 'undefined' ? localStorage.getItem('admin_user') : null;
+        if (userStr && endpoint !== 'auth/login' && endpoint !== 'auth/refresh') {
+            try {
+                const user = JSON.parse(userStr);
+                const refreshRes = await fetch(`${API_BASE}/auth/refresh`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: user._id, email: user.email }),
+                });
+                if (refreshRes.ok) {
+                    const data = await refreshRes.json();
+                    setAccessToken(data.accessToken);
+                    const newHeaders = { ...headers, Authorization: `Bearer ${data.accessToken}` };
+                    const retryRes = await fetch(url, { ...options, headers: newHeaders, _retry: true } as any);
+                    if (!retryRes.ok) {
+                        const err = await retryRes.json().catch(() => ({ message: retryRes.statusText }));
+                        throw new Error(err.message || `API Error ${retryRes.status}`);
+                    }
+                    return retryRes.json();
+                }
+            } catch (err) {
+                // Refresh failed
+            }
+        }
         clearAuth();
         if (typeof window !== 'undefined') {
             window.location.reload();
@@ -60,7 +84,7 @@ async function fetchApi(endpoint: string, options: RequestInit = {}) {
     return res.json();
 }
 
-async function fetchApiFormData(endpoint: string, formData: FormData, method = 'POST') {
+async function fetchApiFormData(endpoint: string, formData: FormData, method = 'POST', _retry = false) {
     const url = `${API_BASE}/${endpoint.replace(/^\//, '')}`;
     const token = getAccessToken();
     const headers: Record<string, string> = {};
@@ -72,7 +96,31 @@ async function fetchApiFormData(endpoint: string, formData: FormData, method = '
         body: formData,
         headers,
     });
-    if (res.status === 401) {
+    if (res.status === 401 && !_retry) {
+        const userStr = typeof window !== 'undefined' ? localStorage.getItem('admin_user') : null;
+        if (userStr && endpoint !== 'auth/login' && endpoint !== 'auth/refresh') {
+            try {
+                const user = JSON.parse(userStr);
+                const refreshRes = await fetch(`${API_BASE}/auth/refresh`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: user._id, email: user.email }),
+                });
+                if (refreshRes.ok) {
+                    const data = await refreshRes.json();
+                    setAccessToken(data.accessToken);
+                    const newHeaders = { ...headers, Authorization: `Bearer ${data.accessToken}` };
+                    const retryRes = await fetch(url, { method, body: formData, headers: newHeaders, _retry: true } as any);
+                    if (!retryRes.ok) {
+                        const err = await retryRes.json().catch(() => ({ message: retryRes.statusText }));
+                        throw new Error(err.message || `API Error ${retryRes.status}`);
+                    }
+                    return retryRes.json();
+                }
+            } catch (err) {
+                // Refresh failed
+            }
+        }
         clearAuth();
         if (typeof window !== 'undefined') {
             window.location.reload();

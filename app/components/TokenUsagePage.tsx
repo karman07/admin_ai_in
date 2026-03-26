@@ -125,7 +125,7 @@ export default function TokenUsagePage() {
         );
     }
 
-    const { totalRevenue: totalRevenueInr = 0, totalAICost = 0, tokensByPlan = [], usageOverTime = [] } = stats || {};
+    const { totalRevenue: totalRevenueInr = 0, totalAICost = 0, tokensByPlan = [], usageOverTime = [], modelBreakdown = [], activeModel = 'gemini-2.5-flash', activePricing = { input: 0.075, output: 0.30 } } = stats || {};
     const EXCHANGE_RATE = 83;
     const totalRevenue = totalRevenueInr / EXCHANGE_RATE;
     const profit       = totalRevenue - totalAICost;
@@ -162,6 +162,40 @@ export default function TokenUsagePage() {
                     <button className="btn-secondary" onClick={fetchData} style={{ borderRadius: 12 }}>
                         <RefreshCw size={18} /> Refresh
                     </button>
+                </div>
+            </div>
+
+            {/* Active Model Info Card */}
+            <div className="glass-card" style={{ padding: 24, marginBottom: 20, border: '1px solid rgba(108,99,255,0.35)', background: 'linear-gradient(135deg, rgba(108,99,255,0.08) 0%, rgba(0,212,170,0.04) 100%)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                        <div style={{ width: 48, height: 48, borderRadius: 14, background: 'rgba(108,99,255,0.15)', border: '1.5px solid rgba(108,99,255,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            <Cpu size={24} color="#6c63ff" />
+                        </div>
+                        <div>
+                            <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 3 }}>Active AI Model</div>
+                            <div style={{ fontSize: 22, fontWeight: 900, color: '#6c63ff', letterSpacing: '-0.02em' }}>{activeModel}</div>
+                        </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 32 }}>
+                        <div style={{ textAlign: 'center' }}>
+                            <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Input Pricing</div>
+                            <div style={{ fontSize: 20, fontWeight: 800, color: INPUT_COLOR }}>${activePricing.input.toFixed(4)}</div>
+                            <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>per 1M prompt tokens</div>
+                        </div>
+                        <div style={{ width: 1, background: 'rgba(255,255,255,0.07)', alignSelf: 'stretch' }} />
+                        <div style={{ textAlign: 'center' }}>
+                            <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Output Pricing</div>
+                            <div style={{ fontSize: 20, fontWeight: 800, color: OUTPUT_COLOR }}>${activePricing.output.toFixed(4)}</div>
+                            <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>per 1M completion tokens</div>
+                        </div>
+                        <div style={{ width: 1, background: 'rgba(255,255,255,0.07)', alignSelf: 'stretch' }} />
+                        <div style={{ textAlign: 'center' }}>
+                            <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Output / Input Ratio</div>
+                            <div style={{ fontSize: 20, fontWeight: 800, color: '#ffb800' }}>{activePricing.input > 0 ? (activePricing.output / activePricing.input).toFixed(1) : '—'}×</div>
+                            <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>output cost multiplier</div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -368,6 +402,75 @@ export default function TokenUsagePage() {
                     </BarChart>
                 </ResponsiveContainer>
             </div>
+
+            {/* Per-Model Breakdown Table */}
+            {modelBreakdown.length > 0 && (
+                <div className="glass-card" style={{ padding: 0, overflow: 'hidden', marginBottom: 28 }}>
+                    <div style={{ padding: '20px 28px', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <h3 style={{ fontSize: 17, fontWeight: 700, margin: 0 }}>🤖 Per-Model Cost Breakdown</h3>
+                        <div style={{ fontSize: 12, color: '#64748b', display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <Cpu size={13} /> Input · Output · Net tokens per model
+                        </div>
+                    </div>
+                    <table className="data-table">
+                        <thead>
+                            <tr>
+                                <th>Model</th>
+                                <th style={{ textAlign: 'right' }}>Input Tokens</th>
+                                <th style={{ textAlign: 'right' }}>Input Cost</th>
+                                <th style={{ textAlign: 'right' }}>Output Tokens</th>
+                                <th style={{ textAlign: 'right' }}>Output Cost</th>
+                                <th style={{ textAlign: 'right' }}>Net Tokens</th>
+                                <th style={{ textAlign: 'right' }}>Total Cost</th>
+                                <th style={{ textAlign: 'right' }}>Sessions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {modelBreakdown.map((m: any, i: number) => {
+                                const isActive = m.model === activeModel;
+                                return (
+                                    <tr key={i} style={{ borderLeft: `3px solid ${isActive ? '#6c63ff' : '#334155'}` }}>
+                                        <td>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                                <div style={{ width: 30, height: 30, borderRadius: 8, background: isActive ? 'rgba(108,99,255,0.15)' : 'rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: `1.5px solid ${isActive ? '#6c63ff' : '#334155'}` }}>
+                                                    <Cpu size={14} color={isActive ? '#6c63ff' : '#475569'} />
+                                                </div>
+                                                <div>
+                                                    <div style={{ fontWeight: 700, fontSize: 13, color: isActive ? '#6c63ff' : '#f8fafc' }}>{m.model}</div>
+                                                    {isActive && <div style={{ fontSize: 10, color: '#6c63ff', fontWeight: 600 }}>● active</div>}
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td style={{ textAlign: 'right' }}>
+                                            <div style={{ fontWeight: 600, color: INPUT_COLOR }}>{fmt(m.totalInputTokens || 0)}</div>
+                                            <div style={{ fontSize: 10, color: '#64748b' }}>${(m.totalInputCost || 0).toFixed(5)}</div>
+                                        </td>
+                                        <td style={{ textAlign: 'right' }}>
+                                            <span style={{ fontWeight: 700, color: INPUT_COLOR }}>${(m.totalInputCost || 0).toFixed(5)}</span>
+                                        </td>
+                                        <td style={{ textAlign: 'right' }}>
+                                            <div style={{ fontWeight: 600, color: OUTPUT_COLOR }}>{fmt(m.totalOutputTokens || 0)}</div>
+                                            <div style={{ fontSize: 10, color: '#64748b' }}>${(m.totalOutputCost || 0).toFixed(5)}</div>
+                                        </td>
+                                        <td style={{ textAlign: 'right' }}>
+                                            <span style={{ fontWeight: 700, color: OUTPUT_COLOR }}>${(m.totalOutputCost || 0).toFixed(5)}</span>
+                                        </td>
+                                        <td style={{ textAlign: 'right' }}>
+                                            <span style={{ fontWeight: 700, color: '#f8fafc' }}>{fmt(m.totalTokens || 0)}</span>
+                                        </td>
+                                        <td style={{ textAlign: 'right' }}>
+                                            <span style={{ color: COST_COLOR, fontWeight: 700 }}>${(m.totalCost || 0).toFixed(5)}</span>
+                                        </td>
+                                        <td style={{ textAlign: 'right' }}>
+                                            <span className="badge badge-purple" style={{ fontSize: 12, padding: '4px 10px' }}>{m.sessionCount}</span>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
+            )}
 
             {/* Detailed Table */}
             <div className="glass-card" style={{ padding: 0, overflow: 'hidden' }}>
