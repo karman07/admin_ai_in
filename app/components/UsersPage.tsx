@@ -23,6 +23,10 @@ import {
     X,
     Phone,
     PhoneCall,
+    Trash2,
+    AlertTriangle,
+    UserCog,
+    CheckCircle,
 } from 'lucide-react';
 import { usersApi, subscriptionsApi, API_BASE } from '../lib/api';
 
@@ -106,6 +110,14 @@ export default function UsersPage() {
     const [planForm, setPlanForm] = useState<{ planId: string; status: string; expiryDays: number }>({ planId: '', status: 'active', expiryDays: 30 });
     const [planSaving, setPlanSaving] = useState(false);
 
+    // Role change state
+    const [roleChanging, setRoleChanging] = useState<string | null>(null); // userId
+    const [roleOpen, setRoleOpen] = useState<string | null>(null); // userId whose dropdown is open
+
+    // Delete state
+    const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+    const [deleting, setDeleting] = useState(false);
+
     const fetchData = async () => {
         setLoading(true);
         try {
@@ -155,6 +167,34 @@ export default function UsersPage() {
             setUsers(prev => prev.map(u => u._id === userId ? { ...u, ...updated } : u));
         } catch (e: any) {
             alert(e?.message || 'Failed to update verification');
+        }
+    };
+
+    const changeRole = async (userId: string, role: string) => {
+        setRoleOpen(null);
+        setRoleChanging(userId);
+        try {
+            const updated = await usersApi.setRole(userId, role);
+            setUsers(prev => prev.map(u => u._id === userId ? { ...u, ...updated } : u));
+        } catch (e: any) {
+            alert(e?.message || 'Failed to change role');
+        } finally {
+            setRoleChanging(null);
+        }
+    };
+
+    const deleteUser = async () => {
+        if (!deleteConfirmId) return;
+        setDeleting(true);
+        try {
+            await usersApi.deleteUser(deleteConfirmId);
+            setUsers(prev => prev.filter(u => u._id !== deleteConfirmId));
+            setExpandedUser(null);
+            setDeleteConfirmId(null);
+        } catch (e: any) {
+            alert(e?.message || 'Failed to delete user');
+        } finally {
+            setDeleting(false);
         }
     };
 
@@ -819,13 +859,59 @@ export default function UsersPage() {
                                                                 </div>
                                                                 <div>
                                                                     <span style={{ color: 'var(--muted-foreground)' }}>Role: </span>
-                                                                    <span
-                                                                        style={{
-                                                                            fontWeight: 600,
-                                                                            color: u.role === 'admin' ? '#ffa726' : 'var(--foreground)',
-                                                                        }}
-                                                                    >
-                                                                        {u.role}
+                                                                    {/* ── Change Role dropdown ── */}
+                                                                    <span style={{ position: 'relative', display: 'inline-block' }}>
+                                                                        <button
+                                                                            onClick={(e) => { e.stopPropagation(); setRoleOpen(roleOpen === u._id ? null : u._id); }}
+                                                                            disabled={roleChanging === u._id}
+                                                                            style={{
+                                                                                display: 'inline-flex', alignItems: 'center', gap: 5,
+                                                                                padding: '3px 10px', borderRadius: 7,
+                                                                                background: 'rgba(108,99,255,0.10)',
+                                                                                border: '1px solid rgba(108,99,255,0.25)',
+                                                                                color: u.role === 'admin' ? '#ffa726' : '#a78bfa',
+                                                                                fontWeight: 700, fontSize: 12, cursor: 'pointer',
+                                                                            }}
+                                                                        >
+                                                                            {roleChanging === u._id
+                                                                                ? <RefreshCw size={11} style={{ animation: 'spin 1s linear infinite' }} />
+                                                                                : <UserCog size={11} />}
+                                                                            {u.role}
+                                                                            <ChevronDown size={10} />
+                                                                        </button>
+                                                                        {roleOpen === u._id && (
+                                                                            <>
+                                                                                <div
+                                                                                    style={{ position: 'fixed', inset: 0, zIndex: 50 }}
+                                                                                    onClick={() => setRoleOpen(null)}
+                                                                                />
+                                                                                <div style={{
+                                                                                    position: 'absolute', top: '110%', left: 0, zIndex: 100,
+                                                                                    background: 'var(--card)', border: '1px solid var(--border)',
+                                                                                    borderRadius: 10, overflow: 'hidden', minWidth: 170,
+                                                                                    boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+                                                                                }}>
+                                                                                    {['user', 'student', 'university_teacher', 'admin'].map(role => (
+                                                                                        <button
+                                                                                            key={role}
+                                                                                            onClick={(e) => { e.stopPropagation(); changeRole(u._id, role); }}
+                                                                                            style={{
+                                                                                                width: '100%', display: 'flex', alignItems: 'center',
+                                                                                                gap: 8, padding: '9px 14px', textAlign: 'left',
+                                                                                                background: role === u.role ? 'rgba(108,99,255,0.12)' : 'none',
+                                                                                                border: 'none',
+                                                                                                color: role === u.role ? '#a78bfa' : 'var(--foreground)',
+                                                                                                fontWeight: role === u.role ? 700 : 500, fontSize: 13,
+                                                                                                cursor: 'pointer',
+                                                                                            }}
+                                                                                        >
+                                                                                            {role === u.role && <CheckCircle size={12} style={{ color: '#a78bfa', flexShrink: 0 }} />}
+                                                                                            {role === 'university_teacher' ? 'Teacher' : role.charAt(0).toUpperCase() + role.slice(1)}
+                                                                                        </button>
+                                                                                    ))}
+                                                                                </div>
+                                                                            </>
+                                                                        )}
                                                                     </span>
                                                                 </div>
                                                                 <div>
@@ -917,6 +1003,21 @@ export default function UsersPage() {
                                                                         </div>
                                                                     </div>
                                                                 )}
+                                                                {/* ── Delete User ── */}
+                                                                <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--card-border)' }}>
+                                                                    <button
+                                                                        onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(u._id); }}
+                                                                        style={{
+                                                                            display: 'inline-flex', alignItems: 'center', gap: 6,
+                                                                            padding: '6px 14px', borderRadius: 8,
+                                                                            background: 'rgba(248,113,113,0.08)',
+                                                                            border: '1px solid rgba(248,113,113,0.25)',
+                                                                            color: '#f87171', fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                                                                        }}
+                                                                    >
+                                                                        <Trash2 size={12} /> Delete User
+                                                                    </button>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -1061,6 +1162,80 @@ export default function UsersPage() {
                 </div>
             </div>
         )}
+
+        {/* \u2500\u2500 Delete Confirm Modal \u2500\u2500 */}
+        {deleteConfirmId && (() => {
+            const target = users.find(u => u._id === deleteConfirmId);
+            return (
+                <div
+                    style={{
+                        position: 'fixed', inset: 0, zIndex: 2000,
+                        background: 'rgba(0,0,0,0.7)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        backdropFilter: 'blur(6px)',
+                    }}
+                    onClick={(e) => { if (e.target === e.currentTarget) setDeleteConfirmId(null); }}
+                >
+                    <div style={{
+                        background: 'var(--card)', border: '1px solid rgba(248,113,113,0.3)',
+                        borderRadius: 16, padding: 28, width: 420, maxWidth: '90vw',
+                        boxShadow: '0 24px 48px rgba(0,0,0,0.5)',
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+                            <div style={{
+                                width: 44, height: 44, borderRadius: 12,
+                                background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.2)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                            }}>
+                                <AlertTriangle size={22} color="#f87171" />
+                            </div>
+                            <div>
+                                <div style={{ fontWeight: 800, fontSize: 16 }}>Delete User?</div>
+                                <div style={{ fontSize: 13, color: 'var(--muted-foreground)', marginTop: 2 }}>
+                                    This action <strong style={{ color: '#f87171' }}>cannot be undone</strong>.
+                                </div>
+                            </div>
+                        </div>
+                        {target && (
+                            <div style={{
+                                background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.15)',
+                                borderRadius: 10, padding: '10px 14px', marginBottom: 20,
+                            }}>
+                                <div style={{ fontWeight: 700, fontSize: 14 }}>{target.name}</div>
+                                <div style={{ fontSize: 12, color: 'var(--muted-foreground)', marginTop: 2 }}>{target.email}</div>
+                            </div>
+                        )}
+                        <div style={{ display: 'flex', gap: 10 }}>
+                            <button
+                                onClick={deleteUser}
+                                disabled={deleting}
+                                style={{
+                                    flex: 1, padding: '10px 0', borderRadius: 10,
+                                    background: deleting ? 'rgba(248,113,113,0.3)' : '#f87171',
+                                    border: 'none', color: '#fff', fontWeight: 700, fontSize: 14,
+                                    cursor: deleting ? 'not-allowed' : 'pointer',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                                }}
+                            >
+                                {deleting ? <RefreshCw size={15} style={{ animation: 'spin 1s linear infinite' }} /> : <Trash2 size={15} />}
+                                {deleting ? 'Deleting…' : 'Yes, Delete'}
+                            </button>
+                            <button
+                                onClick={() => setDeleteConfirmId(null)}
+                                disabled={deleting}
+                                style={{
+                                    padding: '10px 20px', borderRadius: 10,
+                                    background: 'var(--muted)', border: '1px solid var(--border)',
+                                    color: 'var(--foreground)', fontWeight: 600, fontSize: 14, cursor: 'pointer',
+                                }}
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        })()}
 
         </div>
     );

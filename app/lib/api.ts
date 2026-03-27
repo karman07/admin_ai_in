@@ -149,6 +149,10 @@ export const usersApi = {
         fetchApi(`users/admin/${id}/plan`, { method: 'PATCH', body: JSON.stringify(data) }),
     verify: (id: string, data: { isEmailVerified?: boolean; isPhoneVerified?: boolean }) =>
         fetchApi(`users/admin/${id}/verify`, { method: 'PATCH', body: JSON.stringify(data) }),
+    setRole: (id: string, role: string) =>
+        fetchApi(`users/admin/${id}/role`, { method: 'PATCH', body: JSON.stringify({ role }) }),
+    deleteUser: (id: string) =>
+        fetchApi(`users/admin/${id}`, { method: 'DELETE' }),
 };
 
 // Analytics
