@@ -125,7 +125,7 @@ export default function TokenUsagePage() {
         );
     }
 
-    const { totalRevenue: totalRevenueInr = 0, totalAICost = 0, tokensByPlan = [], usageOverTime = [], modelBreakdown = [], activeModel = 'gemini-2.5-flash', activePricing = { input: 0.075, output: 0.30 } } = stats || {};
+    const { totalRevenue: totalRevenueInr = 0, totalAICost = 0, tokensByPlan = [], usageOverTime = [], modelBreakdown = [], activeModel = 'gemini-2.5-flash', activePricing = { input: 0.10, output: 0.40 } } = stats || {};
     const EXCHANGE_RATE = 83;
     const totalRevenue = totalRevenueInr / EXCHANGE_RATE;
     const profit       = totalRevenue - totalAICost;

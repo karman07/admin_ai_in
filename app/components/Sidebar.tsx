@@ -24,6 +24,7 @@ import {
     Briefcase,
     Newspaper,
     Activity,
+    Bell,
 } from 'lucide-react';
 
 export type Page =
@@ -47,6 +48,7 @@ export type Page =
     | 'university-portal'
     | 'blogs'
     | 'job-listings'
+    | 'notifications'
     | 'ai-stats';
 
 const navItems: { id: Page; label: string; icon: React.ReactNode; group: string }[] = [
@@ -54,6 +56,7 @@ const navItems: { id: Page; label: string; icon: React.ReactNode; group: string 
     { id: 'analytics', label: 'Analytics', icon: <BarChart3 size={18} />, group: 'Overview' },
     { id: 'visitors', label: 'Visitors', icon: <Users size={18} />, group: 'Overview' },
     { id: 'users', label: 'Users', icon: <UserCog size={18} />, group: 'Management' },
+    { id: 'notifications', label: 'Notifications', icon: <Bell size={18} />, group: 'Management' },
     { id: 'subscriptions', label: 'Subscriptions', icon: <CreditCard size={18} />, group: 'Management' },
     { id: 'payments', label: 'Payments', icon: <CreditCard size={18} />, group: 'Management' },
     { id: 'discounts', label: 'Discounts', icon: <Ticket size={18} />, group: 'Management' },

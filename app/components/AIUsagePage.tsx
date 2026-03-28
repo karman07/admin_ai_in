@@ -59,7 +59,7 @@ function TypeBadge({ type }: { type?: string }) {
     );
 }
 
-function StatCard({ icon, label, value, color }: { icon: React.ReactNode; label: string; value: string; color: string }) {
+function StatCard({ icon, label, value, color, sub }: { icon: React.ReactNode; label: string; value: string; color: string; sub?: string }) {
     return (
         <div style={{
             background: 'rgba(255, 255, 255, 0.03)',
@@ -74,6 +74,7 @@ function StatCard({ icon, label, value, color }: { icon: React.ReactNode; label:
             <div>
                 <div style={{ color: 'var(--muted-foreground)', fontSize: 13, fontWeight: 500, marginBottom: 8 }}>{label}</div>
                 <div style={{ fontSize: 24, fontWeight: 700 }}>{value}</div>
+                {sub && <div style={{ fontSize: 11, color: 'var(--muted-foreground)', marginTop: 8, fontWeight: 500 }}>{sub}</div>}
             </div>
             <div style={{
                 width: 44,
@@ -153,7 +154,8 @@ export default function AIUsagePage() {
                 <StatCard
                     icon={<DollarSign size={22} color="#ef5350" />}
                     label="Total AI Cost"
-                    value={`$${(totalAICost ?? 0).toFixed(4)}`}
+                    value={`$${(data.totalAICost ?? 0).toFixed(4)}`}
+                    sub={`In: $${(data.totalInputCost ?? 0).toFixed(4)} | Out: $${(data.totalOutputCost ?? 0).toFixed(4)}`}
                     color="red"
                 />
                 <StatCard
@@ -261,10 +263,10 @@ export default function AIUsagePage() {
                                 <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: 500, whiteSpace: 'nowrap' }}>Type</th>
                                 <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: 500, whiteSpace: 'nowrap' }}>Role / Company</th>
                                 <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: 500, whiteSpace: 'nowrap' }}>Model</th>
-                                <th style={{ padding: '14px 16px', textAlign: 'right', fontWeight: 500, whiteSpace: 'nowrap' }}>Input tkns</th>
-                                <th style={{ padding: '14px 16px', textAlign: 'right', fontWeight: 500, whiteSpace: 'nowrap' }}>Output tkns</th>
-                                <th style={{ padding: '14px 16px', textAlign: 'right', fontWeight: 500, whiteSpace: 'nowrap' }}>Total</th>
-                                <th style={{ padding: '14px 16px', textAlign: 'right', fontWeight: 500, whiteSpace: 'nowrap' }}>Cost</th>
+                                <th style={{ padding: '14px 16px', textAlign: 'right', fontWeight: 500, whiteSpace: 'nowrap' }}>Input tkns/Cost</th>
+                                <th style={{ padding: '14px 16px', textAlign: 'right', fontWeight: 500, whiteSpace: 'nowrap' }}>Output tkns/Cost</th>
+                                <th style={{ padding: '14px 16px', textAlign: 'right', fontWeight: 500, whiteSpace: 'nowrap' }}>Total Tokens</th>
+                                <th style={{ padding: '14px 16px', textAlign: 'right', fontWeight: 500, whiteSpace: 'nowrap' }}>Total Cost</th>
                                 <th style={{ padding: '14px 16px', textAlign: 'right', fontWeight: 500, whiteSpace: 'nowrap' }}>Time</th>
                             </tr>
                         </thead>
@@ -327,10 +329,21 @@ export default function AIUsagePage() {
                                             </span>
                                         </td>
 
-                                        <td style={{ padding: '14px 16px', textAlign: 'right', color: 'var(--muted-foreground)', fontVariantNumeric: 'tabular-nums' }}>{(session.inputTokens ?? 0).toLocaleString()}</td>
-                                        <td style={{ padding: '14px 16px', textAlign: 'right', color: 'var(--muted-foreground)', fontVariantNumeric: 'tabular-nums' }}>{(session.outputTokens ?? 0).toLocaleString()}</td>
-                                        <td style={{ padding: '14px 16px', textAlign: 'right', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{(session.totalTokens ?? 0).toLocaleString()}</td>
-                                        <td style={{ padding: '14px 16px', textAlign: 'right', color: '#ef5350', fontVariantNumeric: 'tabular-nums' }}>${(session.costUsd ?? 0).toFixed(4)}</td>
+                                        <td style={{ padding: '14px 16px', textAlign: 'right', color: 'var(--muted-foreground)', fontVariantNumeric: 'tabular-nums' }}>
+                                            <div>{(session.inputTokens ?? 0).toLocaleString()}</div>
+                                            <div style={{ fontSize: 10, color: '#6c63ff' }}>${(session.inputCostUsd ?? 0).toFixed(5)}</div>
+                                        </td>
+                                        <td style={{ padding: '14px 16px', textAlign: 'right', color: 'var(--muted-foreground)', fontVariantNumeric: 'tabular-nums' }}>
+                                            <div>{(session.outputTokens ?? 0).toLocaleString()}</div>
+                                            <div style={{ fontSize: 10, color: '#00d4aa' }}>${(session.outputCostUsd ?? 0).toFixed(5)}</div>
+                                        </td>
+                                        <td style={{ padding: '14px 16px', textAlign: 'right', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+                                            <div>{(session.totalTokens ?? 0).toLocaleString()}</div>
+                                            <div style={{ fontSize: 10, color: 'var(--muted-foreground)', fontWeight: 400 }}>{(session.model || '').replace('gemini-', '')}</div>
+                                        </td>
+                                        <td style={{ padding: '14px 16px', textAlign: 'right', color: '#ef5350', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
+                                            ${(session.costUsd ?? 0).toFixed(4)}
+                                        </td>
                                         <td style={{ padding: '14px 16px', textAlign: 'right', color: 'var(--muted-foreground)', fontSize: 12, whiteSpace: 'nowrap' }}>
                                             {new Date(session.timestamp).toLocaleDateString()}<br />
                                             <span style={{ fontSize: 11 }}>{new Date(session.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>

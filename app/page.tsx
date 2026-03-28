@@ -22,6 +22,7 @@ import UniversityPortalPage from './components/UniversityPortalPage';
 import BlogsPage from './components/BlogsPage';
 import JobListingPage from './components/JobListingPage';
 import AIUsagePage from './components/AIUsagePage';
+import NotificationsPage from './components/NotificationsPage';
 import LoginPage from './components/LoginPage';
 import { getAccessToken, clearAuth } from './lib/api';
 
@@ -30,6 +31,7 @@ const pages: Record<Page, React.ReactNode> = {
   analytics: <AnalyticsPage />,
   visitors: <VisitorsPage />,
   users: <UsersPage />,
+  notifications: <NotificationsPage />,
   subscriptions: <SubscriptionsPage />,
   subjects: <SubjectsPage />,
   lessons: <LessonsPage />,

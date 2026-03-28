@@ -296,3 +296,11 @@ export const jobsApi = {
     updateConfig:   (data: any) => fetchApi('jobs/admin/config', { method: 'POST', body: JSON.stringify(data) }),
     syncNow:        () => fetchApi('jobs/sync-now'),
 };
+
+// Notifications (Admin)
+export const notificationsApi = {
+    sendToAll: (title: string, body: string, data?: any) =>
+        fetchApi('admin/notifications/send-all', { method: 'POST', body: JSON.stringify({ title, body, data }) }),
+    sendToUser: (userId: string, title: string, body: string, data?: any) =>
+        fetchApi(`admin/notifications/send-user/${userId}`, { method: 'POST', body: JSON.stringify({ title, body, data }) }),
+};
