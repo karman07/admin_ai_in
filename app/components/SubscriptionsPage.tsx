@@ -2,9 +2,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
     CreditCard, Plus, Edit3, Trash2, ToggleLeft, ToggleRight,
-    X, RefreshCw, Save, ChevronRight,
+    X, RefreshCw, Save, ChevronRight, Zap
 } from 'lucide-react';
 import { subscriptionsApi } from '../lib/api';
+import { AdminPaygPricing } from './AdminPaygPricing';
 
 interface Feature {
     name: string;

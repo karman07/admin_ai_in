@@ -177,6 +177,24 @@ export const subscriptionsApi = {
     deactivate: (id: string) => fetchApi(`subscriptions/${id}/deactivate`, { method: 'PATCH' }),
     delete: (id: string) => fetchApi(`subscriptions/${id}`, { method: 'DELETE' }),
     generateRazorpayPlan: (id: string) => fetchApi(`subscriptions/${id}/generate-razorpay-plan`, { method: 'POST' }),
+    getPaygConfig: async (country: string = 'IN') => {
+        try {
+            return await fetchApi(`subscriptions/payg/config?country=${country}`);
+        } catch (e: any) {
+            const msg = String(e?.message || '');
+            if (msg.includes('404') || msg.toLowerCase().includes('cannot get')) {
+                return fetchApi(`subscriptions/admin/payg-config?country=${country}`);
+            }
+            throw e;
+        }
+    },
+    updatePaygConfig: (data: {
+        country: string;
+        pricePerInterviewRupees?: number;
+        pricePerResumeRupees?: number;
+        minBudgetRupees?: number;
+        maxBudgetRupees?: number;
+    }) => fetchApi('subscriptions/payg/config', { method: 'PATCH', body: JSON.stringify(data) }),
 };
 
 // Payments (Admin)

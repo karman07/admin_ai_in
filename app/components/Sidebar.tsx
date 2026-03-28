@@ -25,6 +25,7 @@ import {
     Newspaper,
     Activity,
     Bell,
+    Zap,
 } from 'lucide-react';
 
 export type Page =
@@ -33,6 +34,7 @@ export type Page =
     | 'visitors'
     | 'users'
     | 'subscriptions'
+    | 'payg-pricing'
     | 'payments'
     | 'subjects'
     | 'lessons'
@@ -58,6 +60,7 @@ const navItems: { id: Page; label: string; icon: React.ReactNode; group: string 
     { id: 'users', label: 'Users', icon: <UserCog size={18} />, group: 'Management' },
     { id: 'notifications', label: 'Notifications', icon: <Bell size={18} />, group: 'Management' },
     { id: 'subscriptions', label: 'Subscriptions', icon: <CreditCard size={18} />, group: 'Management' },
+    { id: 'payg-pricing', label: 'PAYG Pricing', icon: <Zap size={18} />, group: 'Management' },
     { id: 'payments', label: 'Payments', icon: <CreditCard size={18} />, group: 'Management' },
     { id: 'discounts', label: 'Discounts', icon: <Ticket size={18} />, group: 'Management' },
     { id: 'reviews',   label: 'Reviews',   icon: <Star size={18} />,   group: 'Management' },

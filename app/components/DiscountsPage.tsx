@@ -6,7 +6,7 @@ import {
     Hash, AlertTriangle, Zap, TrendingUp, Gift,
     ShieldCheck, Clock, ChevronRight, Eye, Sparkles,
 } from 'lucide-react';
-import { discountsApi } from '../lib/api';
+import { discountsApi, subscriptionsApi } from '../lib/api';
 
 /* ── types ──────────────────────────────────────────────────────────── */
 interface Coupon {
@@ -16,6 +16,7 @@ interface Coupon {
     usedCount: number; isActive: boolean; expiresAt?: string;
     referrerId?: { _id: string; name: string; email: string };
     createdBy?: { name: string; email: string }; description?: string;
+    applicablePlans?: string[] | any[];
 }
 interface CouponStats {
     coupon: Coupon;
@@ -32,6 +33,7 @@ interface FormState {
     discountValue: number; maxDiscountAmount: string; minOrderAmount: string;
     maxUses: string; isActive: boolean; expiresAt: string;
     referrerId: string; referrerRewardAmount: number; description: string;
+    applicablePlans: string[];
 }
 
 /* ── helpers ─────────────────────────────────────────────────────────── */
@@ -39,6 +41,7 @@ const EMPTY: FormState = {
     code: '', type: 'discount', discountType: 'percentage', discountValue: 10,
     maxDiscountAmount: '', minOrderAmount: '', maxUses: '', isActive: true,
     expiresAt: '', referrerId: '', referrerRewardAmount: 0, description: '',
+    applicablePlans: [],
 };
 const fmt = (p: number) => `\u20b9${(p / 100).toLocaleString('en-IN')}`;
 const isExpired = (c: Coupon) => !!c.expiresAt && new Date(c.expiresAt) < new Date();
@@ -63,12 +66,17 @@ export default function DiscountsPage() {
     const [loadingStats, setLoadingStats] = useState(false);
     const [copied, setCopied]             = useState<string | null>(null);
     const [filter, setFilter]             = useState<'all' | 'discount' | 'referral'>('all');
+    const [plans, setPlans]               = useState<any[]>([]);
 
     const load = async () => {
         setLoading(true);
         try {
-            const [cd, ad] = await Promise.all([discountsApi.getAll(), discountsApi.getAnalytics()]);
-            setCoupons(cd); setAnalytics(ad);
+            const [cd, ad, pd] = await Promise.all([
+                discountsApi.getAll(),
+                discountsApi.getAnalytics(),
+                subscriptionsApi.getAll(),
+            ]);
+            setCoupons(cd); setAnalytics(ad); setPlans(pd);
         } catch (e) { console.error(e); } finally { setLoading(false); }
     };
     useEffect(() => { load(); }, []);
@@ -82,6 +90,7 @@ export default function DiscountsPage() {
             maxUses: c.maxUses != null ? String(c.maxUses) : '', isActive: c.isActive,
             expiresAt: c.expiresAt ? c.expiresAt.substring(0, 10) : '',
             referrerId: (c.referrerId as any)?._id || '', referrerRewardAmount: 0, description: c.description || '',
+            applicablePlans: (c.applicablePlans || []).map((p: any) => typeof p === 'string' ? p : p?._id || p?.id).filter(Boolean),
         });
         setEditId(c._id); setShowModal(true);
     };
@@ -92,14 +101,18 @@ export default function DiscountsPage() {
     const save = async () => {
         setSaving(true);
         try {
-            const p: any = { code: form.code.toUpperCase(), type: form.type, discountType: form.discountType, discountValue: Number(form.discountValue), isActive: form.isActive };
-            if (form.description)       p.description       = form.description;
-            if (form.maxDiscountAmount) p.maxDiscountAmount  = Math.round(Number(form.maxDiscountAmount) * 100);
-            if (form.minOrderAmount)    p.minOrderAmount     = Math.round(Number(form.minOrderAmount)    * 100);
-            if (form.maxUses)           p.maxUses            = Number(form.maxUses);
-            if (form.expiresAt)         p.expiresAt          = form.expiresAt;
-            if (form.referrerId)        p.referrerId         = form.referrerId;
-            editId ? await discountsApi.update(editId, p) : await discountsApi.create(p);
+            const payload: any = {
+                code: form.code.toUpperCase(), type: form.type,
+                discountType: form.discountType, discountValue: Number(form.discountValue),
+                isActive: form.isActive, applicablePlans: form.applicablePlans,
+            };
+            if (form.description)       payload.description       = form.description;
+            if (form.maxDiscountAmount) payload.maxDiscountAmount  = Math.round(Number(form.maxDiscountAmount) * 100);
+            if (form.minOrderAmount)    payload.minOrderAmount     = Math.round(Number(form.minOrderAmount)    * 100);
+            if (form.maxUses)           payload.maxUses            = Number(form.maxUses);
+            if (form.expiresAt)         payload.expiresAt          = form.expiresAt;
+            if (form.referrerId)        payload.referrerId         = form.referrerId;
+            editId ? await discountsApi.update(editId, payload) : await discountsApi.create(payload);
             setShowModal(false); await load();
         } catch (e: any) { alert(e.message || 'Failed'); } finally { setSaving(false); }
     };
@@ -430,6 +443,30 @@ export default function DiscountsPage() {
                                     <input type="date" className="form-input" value={form.expiresAt} onChange={e => setForm(f => ({ ...f, expiresAt: e.target.value }))} />
                                 </Row>
                             </div>
+
+                            <Row label="Applicable Plans (empty for all)">
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8, padding: 12, background: 'rgba(255,255,255,0.03)', border: `1px solid ${BORDER}`, borderRadius: 10 }}>
+                                    {plans.map(p => (
+                                        <label key={p._id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: FG, cursor: 'pointer' }}>
+                                            <input
+                                                type="checkbox"
+                                                checked={form.applicablePlans.includes(p._id)}
+                                                onChange={e => {
+                                                    const id = p._id;
+                                                    setForm(f => ({
+                                                        ...f,
+                                                        applicablePlans: e.target.checked
+                                                            ? [...f.applicablePlans, id]
+                                                            : f.applicablePlans.filter(pid => pid !== id)
+                                                    }));
+                                                }}
+                                            />
+                                            {p.name}
+                                        </label>
+                                    ))}
+                                    {plans.length === 0 && <p style={{ fontSize: 11, color: MFG }}>No plans found</p>}
+                                </div>
+                            </Row>
 
                             {form.type === 'referral' && (
                                 <Row label="Referrer User ID">
