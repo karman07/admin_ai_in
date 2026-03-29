@@ -267,6 +267,7 @@ export default function AIUsagePage() {
                                 <th style={{ padding: '14px 16px', textAlign: 'right', fontWeight: 500, whiteSpace: 'nowrap' }}>Output tkns/Cost</th>
                                 <th style={{ padding: '14px 16px', textAlign: 'right', fontWeight: 500, whiteSpace: 'nowrap' }}>Total Tokens</th>
                                 <th style={{ padding: '14px 16px', textAlign: 'right', fontWeight: 500, whiteSpace: 'nowrap' }}>Total Cost</th>
+                                <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: 500, whiteSpace: 'nowrap' }}>End Status</th>
                                 <th style={{ padding: '14px 16px', textAlign: 'right', fontWeight: 500, whiteSpace: 'nowrap' }}>Time</th>
                             </tr>
                         </thead>
@@ -343,6 +344,23 @@ export default function AIUsagePage() {
                                         </td>
                                         <td style={{ padding: '14px 16px', textAlign: 'right', color: '#ef5350', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
                                             ${(session.costUsd ?? 0).toFixed(4)}
+                                        </td>
+                                        <td style={{ padding: '14px 16px', textAlign: 'left' }}>
+                                            {session.endReason ? (
+                                                <span style={{ 
+                                                    fontSize: 10, 
+                                                    fontWeight: 700, 
+                                                    color: session.endReason === 'USER_EXIT' ? '#42a5f5' : '#888',
+                                                    background: 'rgba(255,255,255,0.05)',
+                                                    padding: '2px 6px',
+                                                    borderRadius: 4,
+                                                    textTransform: 'uppercase'
+                                                }}>
+                                                    {session.endReason.replace(/_/g, ' ')}
+                                                </span>
+                                            ) : (
+                                                <span style={{ color: 'rgba(255,255,255,0.1)', fontSize: 10 }}>Active...</span>
+                                            )}
                                         </td>
                                         <td style={{ padding: '14px 16px', textAlign: 'right', color: 'var(--muted-foreground)', fontSize: 12, whiteSpace: 'nowrap' }}>
                                             {new Date(session.timestamp).toLocaleDateString()}<br />

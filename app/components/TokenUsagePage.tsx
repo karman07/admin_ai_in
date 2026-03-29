@@ -150,9 +150,9 @@ export default function TokenUsagePage() {
                 <div>
                     <h1 style={{ fontSize: 30, fontWeight: 800, display: 'flex', alignItems: 'center', gap: 12 }}>
                         <Cpu size={30} color="#6c63ff" />
-                        AI Token Intelligence
+                        Vertex AI Token Intelligence
                     </h1>
-                    <p style={{ color: '#64748b', marginTop: 4, fontSize: 14 }}>Input & output token breakdown, cost correlation, and profit analysis</p>
+                    <p style={{ color: '#64748b', marginTop: 4, fontSize: 14 }}>Infrastructure-level token breakdown, cost correlation, and profit analysis for Vertex AI models (Gemini)</p>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(0,212,170,0.1)', padding: '6px 12px', borderRadius: 20, border: '1px solid rgba(0,212,170,0.2)' }}>

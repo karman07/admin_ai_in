@@ -26,6 +26,7 @@ import {
     Activity,
     Bell,
     Zap,
+    Database,
 } from 'lucide-react';
 
 export type Page =
@@ -51,6 +52,7 @@ export type Page =
     | 'blogs'
     | 'job-listings'
     | 'notifications'
+    | 'knowledge-base'
     | 'ai-stats';
 
 const navItems: { id: Page; label: string; icon: React.ReactNode; group: string }[] = [
@@ -69,6 +71,7 @@ const navItems: { id: Page; label: string; icon: React.ReactNode; group: string 
     { id: 'quizzes', label: 'Quizzes', icon: <HelpCircle size={18} />, group: 'Content' },
     { id: 'resources', label: 'Resources', icon: <FileText size={18} />, group: 'Content' },
     { id: 'blogs', label: 'Blogs', icon: <Newspaper size={18} />, group: 'Content' },
+    { id: 'knowledge-base', label: 'Knowledge Base', icon: <Database size={18} />, group: 'Content' },
     { id: 'job-listings', label: 'Job Listings', icon: <Briefcase size={18} />, group: 'Management' },
     { id: 'ai-stats', label: 'AI Stats', icon: <Activity size={18} />, group: 'Overview' },
     { id: 'ai-usage',   label: 'AI Usage',   icon: <Cpu size={18} />,           group: 'Overview' },

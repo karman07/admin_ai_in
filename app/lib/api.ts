@@ -322,3 +322,31 @@ export const notificationsApi = {
     sendToUser: (userId: string, title: string, body: string, data?: any) =>
         fetchApi(`admin/notifications/send-user/${userId}`, { method: 'POST', body: JSON.stringify({ title, body, data }) }),
 };
+
+// Knowledge Base (RAG)
+export const knowledgeApi = {
+    getTopics: () => fetchApi('knowledge/topics'),
+    createTopic: (data: { name: string; description?: string; category?: string }) =>
+        fetchApi('knowledge/topics', { method: 'POST', body: JSON.stringify(data) }),
+    deleteTopic: (id: string) => fetchApi(`knowledge/topics/${id}`, { method: 'DELETE' }),
+    updateTopic: (id: string, data: { name?: string; description?: string; category?: string; tags?: string[] }) =>
+        fetchApi(`knowledge/topics/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+    getDocuments: (topicId: string) => fetchApi(`knowledge/topics/${topicId}/documents`),
+    uploadDocument: (topicId: string, file: File) => {
+        const fd = new FormData();
+        fd.append('file', file);
+        return fetchApiFormData(`knowledge/topics/${topicId}/upload`, fd, 'POST');
+    },
+    uploadLogo: (topicId: string, file: File) => {
+        const fd = new FormData();
+        fd.append('logo', file);
+        return fetchApiFormData(`knowledge/topics/${topicId}/logo`, fd, 'POST');
+    },
+    uploadJd: (topicId: string, file: File) => {
+        const fd = new FormData();
+        fd.append('file', file);
+        return fetchApiFormData(`knowledge/topics/${topicId}/jd`, fd, 'POST');
+    },
+    deleteDocument: (id: string) => fetchApi(`knowledge/documents/${id}`, { method: 'DELETE' }),
+    query: (topicId: string, query: string) => fetchApi(`knowledge/query?topic_id=${topicId}&query=${encodeURIComponent(query)}`),
+};
