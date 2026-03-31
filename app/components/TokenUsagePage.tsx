@@ -155,9 +155,9 @@ export default function TokenUsagePage() {
                     <p style={{ color: '#64748b', marginTop: 4, fontSize: 14 }}>Infrastructure-level token breakdown, cost correlation, and profit analysis for Vertex AI models (Gemini)</p>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(0,212,170,0.1)', padding: '6px 12px', borderRadius: 20, border: '1px solid rgba(0,212,170,0.2)' }}>
-                        <div className="pulse-dot" style={{ width: 8, height: 8, borderRadius: '50%', background: '#00d4aa' }} />
-                        <span style={{ fontSize: 12, fontWeight: 600, color: '#00d4aa' }}>LIVE SYNC</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(108,99,255,0.1)', padding: '6px 12px', borderRadius: 20, border: '1px solid rgba(108,99,255,0.2)' }}>
+                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#6c63ff' }} />
+                        <span style={{ fontSize: 13, fontWeight: 700, color: '#6c63ff' }}>VERTEX AUTH ENABLED</span>
                     </div>
                     <button className="btn-secondary" onClick={fetchData} style={{ borderRadius: 12 }}>
                         <RefreshCw size={18} /> Refresh
@@ -421,8 +421,9 @@ export default function TokenUsagePage() {
                                 <th style={{ textAlign: 'right' }}>Output Tokens</th>
                                 <th style={{ textAlign: 'right' }}>Output Cost</th>
                                 <th style={{ textAlign: 'right' }}>Net Tokens</th>
-                                <th style={{ textAlign: 'right' }}>Total Cost</th>
-                                <th style={{ textAlign: 'right' }}>Sessions</th>
+                                <th style={{ textAlign: 'right' }}>Total Cost ($)</th>
+                                <th style={{ textAlign: 'right' }}>RAG Support</th>
+                                <th style={{ textAlign: 'right' }}>Auth Mode</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -459,10 +460,16 @@ export default function TokenUsagePage() {
                                             <span style={{ fontWeight: 700, color: '#f8fafc' }}>{fmt(m.totalTokens || 0)}</span>
                                         </td>
                                         <td style={{ textAlign: 'right' }}>
-                                            <span style={{ color: COST_COLOR, fontWeight: 700 }}>${(m.totalCost || 0).toFixed(5)}</span>
+                                            {m.totalRagTokens > 0 ? (
+                                                <div style={{ color: '#00d4aa', fontSize: 11, fontWeight: 700, background: 'rgba(0,212,170,0.1)', padding: '2px 8px', borderRadius: 6, display: 'inline-block' }}>
+                                                    {fmt(m.totalRagTokens)} Grounding
+                                                </div>
+                                            ) : <span style={{ color: 'rgba(255,255,255,0.2)' }}>—</span>}
                                         </td>
                                         <td style={{ textAlign: 'right' }}>
-                                            <span className="badge badge-purple" style={{ fontSize: 12, padding: '4px 10px' }}>{m.sessionCount}</span>
+                                            <span style={{ fontSize: 11, fontWeight: 700, opacity: 0.8, color: m.isVertex ? '#6c63ff' : '#94a3b8' }}>
+                                                {m.isVertex ? 'VERTEX (Service Account)' : 'DIRECT (API Key)'}
+                                            </span>
                                         </td>
                                     </tr>
                                 );
