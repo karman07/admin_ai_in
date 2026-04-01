@@ -125,11 +125,23 @@ export default function TokenUsagePage() {
         );
     }
 
-    const { totalRevenue: totalRevenueInr = 0, totalAICost = 0, tokensByPlan = [], usageOverTime = [], modelBreakdown = [], activeModel = 'gemini-2.5-flash', activePricing = { input: 0.10, output: 0.40 } } = stats || {};
+    const {
+        totalRevenue: totalRevenueInr = 0,
+        totalAICost = 0,
+        tokensByPlan = [],
+        usageOverTime = [],
+        modelBreakdown = [],
+        activeModel = 'gemini-2.5-flash',
+        activePricing = { input: 0.10, output: 0.40 },
+        totalRagTokens = 0,
+        vertexSessions = 0,
+        directSessions = 0,
+    } = stats || {};
     const EXCHANGE_RATE = 83;
     const totalRevenue = totalRevenueInr / EXCHANGE_RATE;
     const profit       = totalRevenue - totalAICost;
     const margin       = totalRevenue > 0 ? (profit / totalRevenue) * 100 : 0;
+    const hasVertexAuth = vertexSessions > 0 || modelBreakdown.some((m: any) => m.isVertex);
 
     const totalTokens       = tokensByPlan.reduce((a: number, c: any) => a + (c.totalTokens || 0), 0);
     const totalInputTokens  = tokensByPlan.reduce((a: number, c: any) => a + (c.totalInputTokens || 0), 0);
@@ -155,10 +167,18 @@ export default function TokenUsagePage() {
                     <p style={{ color: '#64748b', marginTop: 4, fontSize: 14 }}>Infrastructure-level token breakdown, cost correlation, and profit analysis for Vertex AI models (Gemini)</p>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(108,99,255,0.1)', padding: '6px 12px', borderRadius: 20, border: '1px solid rgba(108,99,255,0.2)' }}>
-                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#6c63ff' }} />
-                        <span style={{ fontSize: 13, fontWeight: 700, color: '#6c63ff' }}>VERTEX AUTH ENABLED</span>
-                    </div>
+                    {hasVertexAuth && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(108,99,255,0.1)', padding: '6px 12px', borderRadius: 20, border: '1px solid rgba(108,99,255,0.2)' }}>
+                            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#6c63ff' }} />
+                            <span style={{ fontSize: 13, fontWeight: 700, color: '#6c63ff' }}>VERTEX AUTH ACTIVE · {vertexSessions} sessions</span>
+                        </div>
+                    )}
+                    {!hasVertexAuth && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'rgba(100,116,139,0.1)', padding: '6px 12px', borderRadius: 20, border: '1px solid rgba(100,116,139,0.2)' }}>
+                            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#64748b' }} />
+                            <span style={{ fontSize: 13, fontWeight: 700, color: '#64748b' }}>DIRECT API KEY MODE</span>
+                        </div>
+                    )}
                     <button className="btn-secondary" onClick={fetchData} style={{ borderRadius: 12 }}>
                         <RefreshCw size={18} /> Refresh
                     </button>
@@ -199,12 +219,14 @@ export default function TokenUsagePage() {
                 </div>
             </div>
 
-            {/* Row 1 - 4 primary KPIs */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 16 }}>
+            {/* Row 1 - 6 primary KPIs */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 14, marginBottom: 16 }}>
                 <StatCard icon={<Zap size={20} color="#6c63ff" />} label="Total Tokens" value={fmt(totalTokens)} sub={`Across ${totalSessions} sessions`} subColor="#6c63ff" borderColor="rgba(108,99,255,0.25)" />
                 <StatCard icon={<DollarSign size={20} color="#ff4d4d" />} label="Total AI Cost" value={`$${totalAICost.toFixed(4)}`} sub={`$${avgCostPerSession.toFixed(4)} per session`} subColor="#ff4d4d" />
                 <StatCard icon={<ArrowUpRight size={20} color="#00d4aa" />} label="Recovered Revenue" value={`$${totalRevenue.toFixed(2)}`} sub={`Net Profit: $${profit.toFixed(2)}`} subColor="#00d4aa" />
                 <StatCard icon={<BarChart3 size={20} color={margin > 0 ? '#00d4aa' : '#ff4d4d'} />} label="Profit Margin" value={`${margin.toFixed(1)}%`} sub={margin > 0 ? 'Profitable' : 'Loss Making'} subColor={margin > 0 ? '#00d4aa' : '#ff4d4d'} />
+                <StatCard icon={<Layers size={20} color="#a78bfa" />} label="RAG / Grounding Tokens" value={fmt(totalRagTokens)} sub={totalTokens > 0 ? `${((totalRagTokens / Math.max(totalTokens, 1)) * 100).toFixed(1)}% of input tokens` : 'Vertex AI RAG context'} subColor="#a78bfa" borderColor="rgba(167,139,250,0.25)" />
+                <StatCard icon={<Cpu size={20} color={hasVertexAuth ? '#6c63ff' : '#64748b'} />} label="Vertex Sessions" value={String(vertexSessions)} sub={directSessions > 0 ? `${directSessions} direct API key` : 'All via Vertex AI auth'} subColor={hasVertexAuth ? '#6c63ff' : '#64748b'} borderColor={hasVertexAuth ? 'rgba(108,99,255,0.25)' : undefined} />
             </div>
 
             {/* Row 1b - Input/Output cost split */}
@@ -238,6 +260,42 @@ export default function TokenUsagePage() {
                     </div>
                 </div>
             </div>
+
+            {/* RAG Tokens Breakdown Card */}
+            {totalRagTokens > 0 && (
+                <div className="glass-card" style={{ padding: 20, marginBottom: 16, border: '1px solid rgba(167,139,250,0.3)', background: 'linear-gradient(135deg, rgba(167,139,250,0.06) 0%, rgba(108,99,255,0.04) 100%)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                            <div style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(167,139,250,0.15)', border: '1.5px solid rgba(167,139,250,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                <Layers size={22} color="#a78bfa" />
+                            </div>
+                            <div>
+                                <div style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 3 }}>Vertex AI RAG Grounding Tokens</div>
+                                <div style={{ fontSize: 20, fontWeight: 900, color: '#a78bfa', letterSpacing: '-0.02em' }}>{fmt(totalRagTokens)} tokens</div>
+                                <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>Context injected from Vertex AI RAG corpora into prompts (counted in input token billing)</div>
+                            </div>
+                        </div>
+                        <div style={{ display: 'flex', gap: 28 }}>
+                            <div style={{ textAlign: 'center' }}>
+                                <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>% of Total Input</div>
+                                <div style={{ fontSize: 18, fontWeight: 800, color: '#a78bfa' }}>{totalTokens > 0 ? ((totalRagTokens / Math.max(totalInputTokens, 1)) * 100).toFixed(1) : '0'}%</div>
+                            </div>
+                            <div style={{ width: 1, background: 'rgba(255,255,255,0.07)', alignSelf: 'stretch' }} />
+                            <div style={{ textAlign: 'center' }}>
+                                <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Est. RAG Token Cost</div>
+                                <div style={{ fontSize: 18, fontWeight: 800, color: '#a78bfa' }}>${((totalRagTokens / 1_000_000) * activePricing.input).toFixed(5)}</div>
+                                <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>billed at input rate</div>
+                            </div>
+                            <div style={{ width: 1, background: 'rgba(255,255,255,0.07)', alignSelf: 'stretch' }} />
+                            <div style={{ textAlign: 'center' }}>
+                                <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Vertex Sessions</div>
+                                <div style={{ fontSize: 18, fontWeight: 800, color: '#6c63ff' }}>{vertexSessions}</div>
+                                <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>used service account</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Row 2 - token breakdown + efficiency */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 16, marginBottom: 28 }}>

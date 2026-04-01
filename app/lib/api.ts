@@ -1,4 +1,4 @@
-export const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.aiforjob.ai';
+export const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 /** Authenticated fetch — use this for new admin API calls */
 export const fetchApiAuth = (endpoint: string, options: RequestInit = {}) =>
@@ -273,10 +273,10 @@ export const reviewsApi = {
     getStats: () => fetchApi('reviews/admin/stats'),
     getAll: (params?: { page?: number; limit?: number; rating?: number; flag?: string; search?: string }) => {
         const q = new URLSearchParams();
-        if (params?.page)   q.append('page',   String(params.page));
-        if (params?.limit)  q.append('limit',  String(params.limit));
+        if (params?.page) q.append('page', String(params.page));
+        if (params?.limit) q.append('limit', String(params.limit));
         if (params?.rating) q.append('rating', String(params.rating));
-        if (params?.flag)   q.append('flag',   params.flag);
+        if (params?.flag) q.append('flag', params.flag);
         if (params?.search) q.append('search', params.search);
         const qs = q.toString();
         return fetchApi(`reviews/admin/all${qs ? `?${qs}` : ''}`);
@@ -298,10 +298,10 @@ export const universitiesApi = {
 export const resultsApi = {
     getAllAdmin: (params?: { page?: number; limit?: number; roundType?: string; search?: string }) => {
         const q = new URLSearchParams();
-        if (params?.page)      q.append('page',      String(params.page));
-        if (params?.limit)     q.append('limit',     String(params.limit));
+        if (params?.page) q.append('page', String(params.page));
+        if (params?.limit) q.append('limit', String(params.limit));
         if (params?.roundType) q.append('roundType', params.roundType);
-        if (params?.search)    q.append('search',    params.search);
+        if (params?.search) q.append('search', params.search);
         const qs = q.toString();
         return fetchApi(`results/admin/all${qs ? `?${qs}` : ''}`);
     },
@@ -309,10 +309,10 @@ export const resultsApi = {
 
 // Jobs (Admin)
 export const jobsApi = {
-    getStats:       () => fetchApi('jobs/admin/stats'),
-    getConfig:      () => fetchApi('jobs/admin/config'),
-    updateConfig:   (data: any) => fetchApi('jobs/admin/config', { method: 'POST', body: JSON.stringify(data) }),
-    syncNow:        () => fetchApi('jobs/sync-now'),
+    getStats: () => fetchApi('jobs/admin/stats'),
+    getConfig: () => fetchApi('jobs/admin/config'),
+    updateConfig: (data: any) => fetchApi('jobs/admin/config', { method: 'POST', body: JSON.stringify(data) }),
+    syncNow: () => fetchApi('jobs/sync-now'),
 };
 
 // Notifications (Admin)
