@@ -21,6 +21,21 @@ const COUNTRIES = [
   { code: 'US', label: 'Global (USD $)', symbol: '$' },
 ];
 
+const DEFAULTS_BY_COUNTRY = {
+  IN: {
+    pricePerInterviewRupees: 49,
+    pricePerResumeRupees: 29,
+    minBudgetRupees: 99,
+    maxBudgetRupees: 5000,
+  },
+  US: {
+    pricePerInterviewRupees: 0.99,
+    pricePerResumeRupees: 0.49,
+    minBudgetRupees: 1.99,
+    maxBudgetRupees: 99.99,
+  },
+} as const;
+
 export function AdminPaygPricing() {
   const [country, setCountry]         = useState('IN');
   const [config, setConfig]           = useState<PaygConfig | null>(null);
@@ -48,6 +63,12 @@ export function AdminPaygPricing() {
         setResumePrice(String(data.pricePerResumeRupees));
         setMinBudget(String(data.minBudgetRupees));
         setMaxBudget(String(data.maxBudgetRupees));
+      } else {
+        const defaults = DEFAULTS_BY_COUNTRY[country as keyof typeof DEFAULTS_BY_COUNTRY] ?? DEFAULTS_BY_COUNTRY.IN;
+        setInterviewPrice(String(defaults.pricePerInterviewRupees));
+        setResumePrice(String(defaults.pricePerResumeRupees));
+        setMinBudget(String(defaults.minBudgetRupees));
+        setMaxBudget(String(defaults.maxBudgetRupees));
       }
     } catch (e: any) {
       setError(e.message || 'Could not load PAYG config.');

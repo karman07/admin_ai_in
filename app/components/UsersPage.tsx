@@ -151,7 +151,14 @@ export default function UsersPage() {
         if (!editPlanUserId) return;
         setPlanSaving(true);
         try {
-            const updated = await usersApi.updatePlan(editPlanUserId, planForm);
+            const selectedPlan = availablePlans.find((p: any) => (p.id || p._id) === planForm.planId);
+            const selectedPlanName = String(selectedPlan?.name || '').toLowerCase();
+            const isFreePlan = selectedPlanName.startsWith('free_tier') || selectedPlanName === 'free';
+            const payload = {
+                ...planForm,
+                status: !isFreePlan && planForm.status === 'free' ? 'active' : planForm.status,
+            };
+            const updated = await usersApi.updatePlan(editPlanUserId, payload);
             setUsers(prev => prev.map(u => u._id === editPlanUserId ? { ...u, ...updated } : u));
             setEditPlanUserId(null);
         } catch (e: any) {
@@ -1080,7 +1087,16 @@ export default function UsersPage() {
                             <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--muted-foreground)', display: 'block', marginBottom: 6 }}>Plan</label>
                             <select
                                 value={planForm.planId}
-                                onChange={(e) => setPlanForm(f => ({ ...f, planId: e.target.value }))}
+                                onChange={(e) => {
+                                    const selectedPlan = availablePlans.find((p: any) => (p.id || p._id) === e.target.value);
+                                    const selectedPlanName = String(selectedPlan?.name || '').toLowerCase();
+                                    const isFreePlan = selectedPlanName.startsWith('free_tier') || selectedPlanName === 'free';
+                                    setPlanForm(f => ({
+                                        ...f,
+                                        planId: e.target.value,
+                                        status: !isFreePlan && f.status === 'free' ? 'active' : f.status,
+                                    }));
+                                }}
                                 style={{
                                     width: '100%', padding: '8px 12px', borderRadius: 8,
                                     background: 'var(--muted)', border: '1px solid var(--border)',
