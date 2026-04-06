@@ -62,6 +62,7 @@ interface UserData {
     googleId?: string;
     createdAt?: string;
     updatedAt?: string;
+    limitsNextReset?: string;
 }
 
 function timeAgo(date: string) {
@@ -987,6 +988,24 @@ export default function UsersPage() {
                                                                                 day: 'numeric',
                                                                             })
                                                                             : '—'}
+                                                                    </span>
+                                                                </div>
+                                                                <div>
+                                                                    <span style={{ color: 'var(--muted-foreground)' }}>Limits reset on: </span>
+                                                                    <span style={{ fontWeight: 600 }}>
+                                                                        {u.limitsNextReset
+                                                                            ? new Date(u.limitsNextReset).toLocaleDateString('en', {
+                                                                                year: 'numeric',
+                                                                                month: 'long',
+                                                                                day: 'numeric',
+                                                                            })
+                                                                            : u.createdAt
+                                                                                ? (() => {
+                                                                                    const d = new Date(u.createdAt);
+                                                                                    const next = new Date(d.getFullYear(), d.getMonth() + 1, d.getDate());
+                                                                                    return next.toLocaleDateString('en', { year: 'numeric', month: 'long', day: 'numeric' });
+                                                                                })()
+                                                                                : '—'}
                                                                     </span>
                                                                 </div>
                                                                 {(u.skills || []).length > 0 && (
