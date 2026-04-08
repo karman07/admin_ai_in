@@ -352,3 +352,18 @@ export const companyRoundsApi = {
     },
     delete: (id: string) => fetchApi(`company-rounds/${id}`, { method: 'DELETE' }),
 };
+
+// Topic interviews (Admin)
+export const topicInterviewsApi = {
+    getAll: () => fetchApi('topic-interviews/admin/all'),
+    getAllPublic: () => fetchApi('topic-interviews'),
+    getById: (id: string) => fetchApi(`topic-interviews/${id}`),
+    create: (data: any) => fetchApi('topic-interviews', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: any) => fetchApi(`topic-interviews/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: string) => fetchApi(`topic-interviews/${id}`, { method: 'DELETE' }),
+    uploadLogo: (id: string, file: File) => {
+        const fd = new FormData();
+        fd.append('logo', file);
+        return fetchApiFormData(`topic-interviews/${id}/logo`, fd, 'POST');
+    },
+};

@@ -53,6 +53,7 @@ export type Page =
     | 'job-listings'
     | 'notifications'
     | 'company-rounds'
+    | 'topic-interviews'
     | 'ai-stats';
 
 const navItems: { id: Page; label: string; icon: React.ReactNode; group: string }[] = [
@@ -80,6 +81,7 @@ const navItems: { id: Page; label: string; icon: React.ReactNode; group: string 
     { id: 'ai-keys',    label: 'AI Keys',     icon: <Key size={18} />,            group: 'Management' },
     { id: 'universities', label: 'Universities', icon: <GraduationCap size={18} />,   group: 'Management' },
     { id: 'university-portal', label: 'University Portal', icon: <Building2 size={18} />, group: 'Management' },
+    { id: 'topic-interviews', label: 'Topic Interviews', icon: <BookOpen size={18} />, group: 'Content' },
 ];
 
 export default function Sidebar({
