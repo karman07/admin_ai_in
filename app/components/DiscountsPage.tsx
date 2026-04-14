@@ -10,13 +10,15 @@ import { discountsApi, subscriptionsApi } from '../lib/api';
 
 /* ── types ──────────────────────────────────────────────────────────── */
 interface Coupon {
-    _id: string; code: string; type: 'discount' | 'referral';
+    _id: string; code: string; type: 'discount' | 'referral' | 'access_code';
     discountType: 'percentage' | 'fixed'; discountValue: number;
     maxDiscountAmount?: number; minOrderAmount?: number; maxUses?: number;
     usedCount: number; isActive: boolean; expiresAt?: string;
     referrerId?: { _id: string; name: string; email: string };
     createdBy?: { name: string; email: string }; description?: string;
     applicablePlans?: string[] | any[];
+    trialDays?: number;
+    linkedPlanId?: string | any;
 }
 interface CouponStats {
     coupon: Coupon;
@@ -29,11 +31,12 @@ interface Analytics {
     topCoupons: { _id: string; uses: number; totalDiscount: number; coupon: Coupon }[];
 }
 interface FormState {
-    code: string; type: 'discount' | 'referral'; discountType: 'percentage' | 'fixed';
+    code: string; type: 'discount' | 'referral' | 'access_code'; discountType: 'percentage' | 'fixed';
     discountValue: number; maxDiscountAmount: string; minOrderAmount: string;
     maxUses: string; isActive: boolean; expiresAt: string;
     referrerId: string; referrerRewardAmount: number; description: string;
     applicablePlans: string[];
+    trialDays: string; linkedPlanId: string;
 }
 
 /* ── helpers ─────────────────────────────────────────────────────────── */
@@ -41,7 +44,7 @@ const EMPTY: FormState = {
     code: '', type: 'discount', discountType: 'percentage', discountValue: 10,
     maxDiscountAmount: '', minOrderAmount: '', maxUses: '', isActive: true,
     expiresAt: '', referrerId: '', referrerRewardAmount: 0, description: '',
-    applicablePlans: [],
+    applicablePlans: [], trialDays: '14', linkedPlanId: '',
 };
 const fmt = (p: number) => `\u20b9${(p / 100).toLocaleString('en-IN')}`;
 const isExpired = (c: Coupon) => !!c.expiresAt && new Date(c.expiresAt) < new Date();
@@ -65,7 +68,7 @@ export default function DiscountsPage() {
     const [statsModal, setStatsModal]     = useState<CouponStats | null>(null);
     const [loadingStats, setLoadingStats] = useState(false);
     const [copied, setCopied]             = useState<string | null>(null);
-    const [filter, setFilter]             = useState<'all' | 'discount' | 'referral'>('all');
+    const [filter, setFilter]             = useState<'all' | 'discount' | 'referral' | 'access_code'>('all');
     const [plans, setPlans]               = useState<any[]>([]);
 
     const load = async () => {
@@ -91,6 +94,8 @@ export default function DiscountsPage() {
             expiresAt: c.expiresAt ? c.expiresAt.substring(0, 10) : '',
             referrerId: (c.referrerId as any)?._id || '', referrerRewardAmount: 0, description: c.description || '',
             applicablePlans: (c.applicablePlans || []).map((p: any) => typeof p === 'string' ? p : p?._id || p?.id).filter(Boolean),
+            trialDays: c.trialDays ? String(c.trialDays) : '14',
+            linkedPlanId: typeof c.linkedPlanId === 'string' ? c.linkedPlanId : c.linkedPlanId?._id || '',
         });
         setEditId(c._id); setShowModal(true);
     };
@@ -112,6 +117,11 @@ export default function DiscountsPage() {
             if (form.maxUses)           payload.maxUses            = Number(form.maxUses);
             if (form.expiresAt)         payload.expiresAt          = form.expiresAt;
             if (form.referrerId)        payload.referrerId         = form.referrerId;
+            if (form.type === 'access_code') {
+                payload.trialDays    = Number(form.trialDays) || 14;
+                payload.linkedPlanId = form.linkedPlanId || undefined;
+                payload.discountValue = 0;
+            }
             editId ? await discountsApi.update(editId, payload) : await discountsApi.create(payload);
             setShowModal(false); await load();
         } catch (e: any) { alert(e.message || 'Failed'); } finally { setSaving(false); }
@@ -196,7 +206,7 @@ export default function DiscountsPage() {
             {/* ── FILTER TABS ─────────────────────────────────────────── */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
                 <div style={{ display: 'flex', gap: 4, background: 'rgba(255,255,255,0.03)', padding: 4, borderRadius: 10, border: `1px solid ${BORDER}` }}>
-                    {(['all', 'discount', 'referral'] as const).map(t => (
+                    {(['all', 'discount', 'referral', 'access_code'] as const).map(t => (
                         <button
                             key={t}
                             onClick={() => setFilter(t)}
@@ -208,7 +218,7 @@ export default function DiscountsPage() {
                                 transition: 'all 0.15s',
                             }}
                         >
-                            {t === 'all' ? 'All Codes' : t === 'discount' ? 'Promo Codes' : 'Referrals'}
+                            {t === 'all' ? 'All Codes' : t === 'discount' ? 'Promo Codes' : t === 'referral' ? 'Referrals' : 'Access Codes'}
                         </button>
                     ))}
                 </div>
@@ -410,10 +420,12 @@ export default function DiscountsPage() {
                                     <select className="form-input form-select" value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value as any }))}>
                                         <option value="discount">Promo Discount</option>
                                         <option value="referral">Referral Code</option>
+                                        <option value="access_code">🔑 Access Code (Trial)</option>
                                     </select>
                                 </Row>
                             </div>
 
+                            {form.type !== 'access_code' && (
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                                 <Row label="Discount Type">
                                     <select className="form-input form-select" value={form.discountType} onChange={e => setForm(f => ({ ...f, discountType: e.target.value as any }))}>
@@ -421,10 +433,33 @@ export default function DiscountsPage() {
                                         <option value="fixed">Fixed Amount</option>
                                     </select>
                                 </Row>
-                                <Row label={form.discountType === 'percentage' ? 'Value (%)' : 'Value (\u20b9)'}>
-                                    <input type="number" className="form-input" value={form.discountValue} onChange={e => setForm(f => ({ ...f, discountValue: Number(e.target.value) }))} min={1} />
+                                <Row label={form.discountType === 'percentage' ? 'Value (%)' : 'Value (₹)'}>
+                                    <input type="number" className="form-input" value={form.discountValue} onChange={e => setForm(f => ({ ...f, discountValue: Number(e.target.value) }))} min={0} />
                                 </Row>
                             </div>
+                            )}
+
+                            {form.type === 'access_code' && (
+                            <div style={{ padding: '14px 16px', background: 'rgba(108,99,255,0.06)', border: '1px solid rgba(108,99,255,0.18)', borderRadius: 12 }}>
+                                <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.06em', color: MFG, marginBottom: 10 }}>Trial Configuration</div>
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                                    <Row label="Trial Duration (days)">
+                                        <input type="number" className="form-input" value={form.trialDays} onChange={e => setForm(f => ({ ...f, trialDays: e.target.value }))} min={1} max={365} placeholder="14" />
+                                    </Row>
+                                    <Row label="Linked Plan *">
+                                        <select className="form-input form-select" value={form.linkedPlanId} onChange={e => setForm(f => ({ ...f, linkedPlanId: e.target.value }))}>
+                                            <option value="">— Select plan —</option>
+                                            {plans.filter((p: any) => {
+                                                const name = String(p.name || '').toLowerCase();
+                                                return !name.startsWith('free_tier') && name !== 'free';
+                                            }).map((p: any) => (
+                                                <option key={p._id || p.id} value={p._id || p.id}>{p.displayName || p.name}</option>
+                                            ))}
+                                        </select>
+                                    </Row>
+                                </div>
+                            </div>
+                            )}
 
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                                 <Row label="Max Discount Cap (\u20b9)">
@@ -500,7 +535,7 @@ export default function DiscountsPage() {
                                 className="btn-primary"
                                 style={{ flex: 2 }}
                                 onClick={save}
-                                disabled={saving || !form.code || !form.discountValue}
+                                disabled={saving || !form.code || (form.type !== 'access_code' && !form.discountValue) || (form.type === 'access_code' && !form.linkedPlanId)}
                             >
                                 {saving
                                     ? <><RefreshCw size={13} className="animate-spin" /> Saving…</>

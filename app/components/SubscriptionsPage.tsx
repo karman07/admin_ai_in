@@ -548,8 +548,8 @@ export default function SubscriptionsPage() {
                                         Set the monthly usage limits enforced by the backend for this plan.
                                     </p>
                                     {KNOWN_LIMITS.map(kl => {
-                                        const val = getLimitValue(kl.name) || kl.defaultVal;
-                                        const pct = Math.round((val / kl.max) * 100);
+                                        const val = getLimitValue(kl.name);
+                                        const pct = kl.max > 0 ? Math.round((val / kl.max) * 100) : 0;
                                         return (
                                             <div
                                                 key={kl.name}
@@ -572,7 +572,7 @@ export default function SubscriptionsPage() {
                                                 {/* Slider */}
                                                 <input
                                                     type="range"
-                                                    min={1}
+                                                    min={0}
                                                     max={kl.max}
                                                     value={val}
                                                     onChange={e => setLimitValue(kl.name, +e.target.value, kl.unit)}
@@ -580,7 +580,7 @@ export default function SubscriptionsPage() {
                                                 />
                                                 {/* Min/max labels + manual input */}
                                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-                                                    <span style={{ fontSize: 10, color: 'var(--muted-foreground)' }}>1</span>
+                                                    <span style={{ fontSize: 10, color: 'var(--muted-foreground)' }}>0</span>
                                                     <div style={{ flex: 1, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
                                                         <div style={{ height: '100%', width: `${pct}%`, background: '#6c63ff', borderRadius: 2, transition: 'width 0.2s' }} />
                                                     </div>
@@ -589,7 +589,7 @@ export default function SubscriptionsPage() {
                                                         type="number"
                                                         className="form-input"
                                                         style={{ width: 72, textAlign: 'center', fontWeight: 800 }}
-                                                        min={1}
+                                                        min={0}
                                                         max={kl.max}
                                                         value={val}
                                                         onChange={e => setLimitValue(kl.name, +e.target.value, kl.unit)}

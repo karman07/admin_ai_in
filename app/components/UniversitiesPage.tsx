@@ -318,11 +318,11 @@ export default function UniversitiesPage() {
                                 </div>
                                 <div>
                                     <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Resume Limit</label>
-                                    <input type="number" min={1} max={100} className="form-input" value={form.resumeLimit} onChange={e => setForm(f => ({ ...f, resumeLimit: Number(e.target.value) }))} />
+                                    <input type="number" min={0} max={100} className="form-input" value={form.resumeLimit} onChange={e => setForm(f => ({ ...f, resumeLimit: Number(e.target.value) }))} />
                                 </div>
                                 <div>
                                     <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Interview Limit</label>
-                                    <input type="number" min={1} max={200} className="form-input" value={form.interviewLimit} onChange={e => setForm(f => ({ ...f, interviewLimit: Number(e.target.value) }))} />
+                                    <input type="number" min={0} max={200} className="form-input" value={form.interviewLimit} onChange={e => setForm(f => ({ ...f, interviewLimit: Number(e.target.value) }))} />
                                 </div>
                                 <div className="col-span-2">
                                     <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Logo URL (optional)</label>
