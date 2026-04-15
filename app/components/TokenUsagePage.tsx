@@ -37,9 +37,9 @@ import {
 import { analyticsApi, API_BASE } from '../lib/api';
 
 const COLORS = ['#6c63ff', '#00d4aa', '#ffb800', '#ff4d4d'];
-const INPUT_COLOR  = '#6c63ff';
+const INPUT_COLOR = '#6c63ff';
 const OUTPUT_COLOR = '#00d4aa';
-const COST_COLOR   = '#ff4d4d';
+const COST_COLOR = '#ff4d4d';
 
 function fmt(n: number) {
     if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
@@ -139,20 +139,20 @@ export default function TokenUsagePage() {
     } = stats || {};
     const EXCHANGE_RATE = 83;
     const totalRevenue = totalRevenueInr / EXCHANGE_RATE;
-    const profit       = totalRevenue - totalAICost;
-    const margin       = totalRevenue > 0 ? (profit / totalRevenue) * 100 : 0;
+    const profit = totalRevenue - totalAICost;
+    const margin = totalRevenue > 0 ? (profit / totalRevenue) * 100 : 0;
     const hasVertexAuth = vertexSessions > 0 || modelBreakdown.some((m: any) => m.isVertex);
 
-    const totalTokens       = tokensByPlan.reduce((a: number, c: any) => a + (c.totalTokens || 0), 0);
-    const totalInputTokens  = tokensByPlan.reduce((a: number, c: any) => a + (c.totalInputTokens || 0), 0);
+    const totalTokens = tokensByPlan.reduce((a: number, c: any) => a + (c.totalTokens || 0), 0);
+    const totalInputTokens = tokensByPlan.reduce((a: number, c: any) => a + (c.totalInputTokens || 0), 0);
     const totalOutputTokens = tokensByPlan.reduce((a: number, c: any) => a + (c.totalOutputTokens || 0), 0);
-    const totalInputCost    = tokensByPlan.reduce((a: number, c: any) => a + (c.totalInputCost || 0), 0);
-    const totalOutputCost   = tokensByPlan.reduce((a: number, c: any) => a + (c.totalOutputCost || 0), 0);
-    const totalSessions     = tokensByPlan.reduce((a: number, c: any) => a + (c.sessionCount || 0), 0);
+    const totalInputCost = tokensByPlan.reduce((a: number, c: any) => a + (c.totalInputCost || 0), 0);
+    const totalOutputCost = tokensByPlan.reduce((a: number, c: any) => a + (c.totalOutputCost || 0), 0);
+    const totalSessions = tokensByPlan.reduce((a: number, c: any) => a + (c.sessionCount || 0), 0);
     const avgTokensPerSession = totalSessions > 0 ? Math.round(totalTokens / totalSessions) : 0;
-    const avgCostPerSession   = totalSessions > 0 ? totalAICost / totalSessions : 0;
-    const tokensPerDollar     = totalAICost > 0 ? Math.round(totalTokens / totalAICost) : 0;
-    const inputRatio  = totalTokens > 0 ? ((totalInputTokens / totalTokens) * 100).toFixed(1) : '0';
+    const avgCostPerSession = totalSessions > 0 ? totalAICost / totalSessions : 0;
+    const tokensPerDollar = totalAICost > 0 ? Math.round(totalTokens / totalAICost) : 0;
+    const inputRatio = totalTokens > 0 ? ((totalInputTokens / totalTokens) * 100).toFixed(1) : '0';
     const outputRatio = totalTokens > 0 ? ((totalOutputTokens / totalTokens) * 100).toFixed(1) : '0';
 
     return (
@@ -412,7 +412,7 @@ export default function TokenUsagePage() {
                             <Tooltip content={<CustomTooltip />} />
                             <Area yAxisId="left" type="monotone" dataKey="tokens" name="Total Tokens" stroke="#6c63ff" strokeWidth={2} fill="url(#tokenGrad2)" dot={false} />
                             <Line yAxisId="right" type="monotone" dataKey="cost" name="Cost ($)" stroke={COST_COLOR} strokeWidth={2.5} dot={{ r: 3, fill: COST_COLOR, stroke: '#fff', strokeWidth: 1.5 }} />                        <Line yAxisId="right" type="monotone" dataKey="inputCost" name="Input Cost ($)" stroke={INPUT_COLOR} strokeWidth={1.5} strokeDasharray="4 3" dot={false} />
-                        <Line yAxisId="right" type="monotone" dataKey="outputCost" name="Output Cost ($)" stroke={OUTPUT_COLOR} strokeWidth={1.5} strokeDasharray="4 3" dot={false} />                        </ComposedChart>
+                            <Line yAxisId="right" type="monotone" dataKey="outputCost" name="Output Cost ($)" stroke={OUTPUT_COLOR} strokeWidth={1.5} strokeDasharray="4 3" dot={false} />                        </ComposedChart>
                     </ResponsiveContainer>
                 </div>
 
@@ -560,11 +560,11 @@ export default function TokenUsagePage() {
                     </thead>
                     <tbody>
                         {tokensByPlan.map((p: any, i: number) => {
-                            const costPerSession   = p.sessionCount > 0 ? p.totalCost / p.sessionCount : 0;
-                            const tPerDollar       = p.totalCost > 0 ? Math.round(p.totalTokens / p.totalCost) : 0;
-                            const planShare        = totalTokens > 0 ? ((p.totalTokens / totalTokens) * 100).toFixed(1) : '0';
-                            const inPct            = p.totalTokens > 0 ? ((p.totalInputTokens || 0) / p.totalTokens * 100).toFixed(0) : '0';
-                            const outPct           = p.totalTokens > 0 ? ((p.totalOutputTokens || 0) / p.totalTokens * 100).toFixed(0) : '0';
+                            const costPerSession = p.sessionCount > 0 ? p.totalCost / p.sessionCount : 0;
+                            const tPerDollar = p.totalCost > 0 ? Math.round(p.totalTokens / p.totalCost) : 0;
+                            const planShare = totalTokens > 0 ? ((p.totalTokens / totalTokens) * 100).toFixed(1) : '0';
+                            const inPct = p.totalTokens > 0 ? ((p.totalInputTokens || 0) / p.totalTokens * 100).toFixed(0) : '0';
+                            const outPct = p.totalTokens > 0 ? ((p.totalOutputTokens || 0) / p.totalTokens * 100).toFixed(0) : '0';
                             return (
                                 <tr key={i} style={{ borderLeft: `3px solid ${COLORS[i % COLORS.length]}` }}>
                                     <td>
