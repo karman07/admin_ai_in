@@ -20,7 +20,6 @@ import {
     IndianRupee,
     CheckCircle2,
     XCircle,
-    Cpu,
 } from 'lucide-react';
 import {
     AreaChart,
@@ -36,7 +35,7 @@ import {
     Pie,
     Cell,
 } from 'recharts';
-import { analyticsApi, paymentsApi, API_BASE } from '../lib/api';
+import { analyticsApi, paymentsApi } from '../lib/api';
 
 const PIE_COLORS = ['#6c63ff', '#00d4aa', '#ffa726', '#ef5350', '#3b82f6', '#f472b6'];
 
@@ -155,46 +154,19 @@ function CustomTooltip({ active, payload, label }: any) {
 export default function DashboardPage() {
     const [data, setData] = useState<DashboardData | null>(null);
     const [paymentData, setPaymentData] = useState<any>(null);
-    const [aiUsageData, setAiUsageData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         Promise.all([
             analyticsApi.getDashboardStats(),
             paymentsApi.getAnalytics().catch(() => null),
-            analyticsApi.getAIUsageStats().catch(() => null),
         ])
-            .then(([dashData, pmtData, aiData]) => {
+            .then(([dashData, pmtData]) => {
                 setData(dashData);
                 setPaymentData(pmtData);
-                setAiUsageData(aiData);
             })
             .catch(console.error)
             .finally(() => setLoading(false));
-
-        // Real-time synchronization
-        import('socket.io-client').then(({ io }) => {
-            const socket = io(`${API_BASE}/analytics`, {
-                transports: ['websocket'],
-                reconnection: true,
-                query: { isAdmin: 'true' }
-            });
-
-            socket.on('aiUsageUpdated', (usageStats) => {
-                console.log('🔄 Dashboard: AI Usage Update Received');
-                setData(prev => prev ? {
-                    ...prev,
-                    overview: {
-                        ...prev.overview,
-                        totalRevenue: usageStats.totalRevenue, // Sync revenue from AI cost stream if applicable
-                    }
-                } : null);
-            });
-
-            return () => {
-                socket.disconnect();
-            };
-        });
     }, []);
 
     if (loading) {

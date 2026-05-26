@@ -1,9 +1,5 @@
 export const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
-/** Authenticated fetch — use this for new admin API calls */
-export const fetchApiAuth = (endpoint: string, options: RequestInit = {}) =>
-    fetchApi(endpoint, options);
-
 // Auth token management
 let accessToken: string | null = null;
 
@@ -46,31 +42,7 @@ async function fetchApi(endpoint: string, options: RequestInit = {}) {
         ...options,
         headers,
     });
-    if (res.status === 401 && !(options as any)._retry) {
-        const userStr = typeof window !== 'undefined' ? localStorage.getItem('admin_user') : null;
-        if (userStr && endpoint !== 'auth/login' && endpoint !== 'auth/refresh') {
-            try {
-                const user = JSON.parse(userStr);
-                const refreshRes = await fetch(`${API_BASE}/auth/refresh`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId: user._id, email: user.email }),
-                });
-                if (refreshRes.ok) {
-                    const data = await refreshRes.json();
-                    setAccessToken(data.accessToken);
-                    const newHeaders = { ...headers, Authorization: `Bearer ${data.accessToken}` };
-                    const retryRes = await fetch(url, { ...options, headers: newHeaders, _retry: true } as any);
-                    if (!retryRes.ok) {
-                        const err = await retryRes.json().catch(() => ({ message: retryRes.statusText }));
-                        throw new Error(err.message || `API Error ${retryRes.status}`);
-                    }
-                    return retryRes.json();
-                }
-            } catch (err) {
-                // Refresh failed
-            }
-        }
+    if (res.status === 401) {
         clearAuth();
         if (typeof window !== 'undefined') {
             window.location.reload();
@@ -84,7 +56,7 @@ async function fetchApi(endpoint: string, options: RequestInit = {}) {
     return res.json();
 }
 
-async function fetchApiFormData(endpoint: string, formData: FormData, method = 'POST', _retry = false) {
+async function fetchApiFormData(endpoint: string, formData: FormData, method = 'POST') {
     const url = `${API_BASE}/${endpoint.replace(/^\//, '')}`;
     const token = getAccessToken();
     const headers: Record<string, string> = {};
@@ -96,31 +68,7 @@ async function fetchApiFormData(endpoint: string, formData: FormData, method = '
         body: formData,
         headers,
     });
-    if (res.status === 401 && !_retry) {
-        const userStr = typeof window !== 'undefined' ? localStorage.getItem('admin_user') : null;
-        if (userStr && endpoint !== 'auth/login' && endpoint !== 'auth/refresh') {
-            try {
-                const user = JSON.parse(userStr);
-                const refreshRes = await fetch(`${API_BASE}/auth/refresh`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId: user._id, email: user.email }),
-                });
-                if (refreshRes.ok) {
-                    const data = await refreshRes.json();
-                    setAccessToken(data.accessToken);
-                    const newHeaders = { ...headers, Authorization: `Bearer ${data.accessToken}` };
-                    const retryRes = await fetch(url, { method, body: formData, headers: newHeaders, _retry: true } as any);
-                    if (!retryRes.ok) {
-                        const err = await retryRes.json().catch(() => ({ message: retryRes.statusText }));
-                        throw new Error(err.message || `API Error ${retryRes.status}`);
-                    }
-                    return retryRes.json();
-                }
-            } catch (err) {
-                // Refresh failed
-            }
-        }
+    if (res.status === 401) {
         clearAuth();
         if (typeof window !== 'undefined') {
             window.location.reload();
@@ -133,6 +81,8 @@ async function fetchApiFormData(endpoint: string, formData: FormData, method = '
     }
     return res.json();
 }
+
+export { fetchApi as fetchApiAuth };
 
 // Auth
 export const authApi = {
@@ -145,14 +95,6 @@ export const authApi = {
 export const usersApi = {
     getAll: () => fetchApi('users/admin/all'),
     getById: (id: string) => fetchApi(`users/${id}`),
-    updatePlan: (id: string, data: { planId?: string; status: string; expiryDays?: number }) =>
-        fetchApi(`users/admin/${id}/plan`, { method: 'PATCH', body: JSON.stringify(data) }),
-    verify: (id: string, data: { isEmailVerified?: boolean; isPhoneVerified?: boolean }) =>
-        fetchApi(`users/admin/${id}/verify`, { method: 'PATCH', body: JSON.stringify(data) }),
-    setRole: (id: string, role: string) =>
-        fetchApi(`users/admin/${id}/role`, { method: 'PATCH', body: JSON.stringify({ role }) }),
-    deleteUser: (id: string) =>
-        fetchApi(`users/admin/${id}`, { method: 'DELETE' }),
 };
 
 // Analytics
@@ -164,7 +106,6 @@ export const analyticsApi = {
     getRecentSessions: (limit = 20) => fetchApi(`analytics/admin/recent-sessions?limit=${limit}`),
     getPageViews: (limit = 50) => fetchApi(`analytics/pageviews?limit=${limit}`),
     getPopularPages: (limit = 10) => fetchApi(`analytics/admin/popular-pages?limit=${limit}`),
-    getAIUsageStats: () => fetchApi('analytics/admin/ai-usage'),
 };
 
 // Subscriptions
@@ -176,43 +117,12 @@ export const subscriptionsApi = {
     activate: (id: string) => fetchApi(`subscriptions/${id}/activate`, { method: 'PATCH' }),
     deactivate: (id: string) => fetchApi(`subscriptions/${id}/deactivate`, { method: 'PATCH' }),
     delete: (id: string) => fetchApi(`subscriptions/${id}`, { method: 'DELETE' }),
-    generateRazorpayPlan: (id: string) => fetchApi(`subscriptions/${id}/generate-razorpay-plan`, { method: 'POST' }),
-    getPaygConfig: async (country: string = 'IN') => {
-        try {
-            return await fetchApi(`subscriptions/payg/config?country=${country}`);
-        } catch (e: any) {
-            const msg = String(e?.message || '');
-            if (msg.includes('404') || msg.toLowerCase().includes('cannot get')) {
-                return fetchApi(`subscriptions/admin/payg-config?country=${country}`);
-            }
-            throw e;
-        }
-    },
-    updatePaygConfig: (data: {
-        country: string;
-        pricePerInterviewRupees?: number;
-        pricePerResumeRupees?: number;
-        minBudgetRupees?: number;
-        maxBudgetRupees?: number;
-    }) => fetchApi('subscriptions/payg/config', { method: 'PATCH', body: JSON.stringify(data) }),
 };
 
 // Payments (Admin)
 export const paymentsApi = {
     getAnalytics: () => fetchApi('payments/admin/analytics'),
     getAll: (limit = 20, offset = 0) => fetchApi(`payments/admin/all?limit=${limit}&offset=${offset}`),
-};
-
-// AI Config (API Keys)
-export const aiConfigApi = {
-    getKeys: () => fetchApi('ai-config/keys'),
-    addKey: (data: { provider: 'gemini' | 'groq'; label: string; value: string }) =>
-        fetchApi('ai-config/keys', { method: 'POST', body: JSON.stringify(data) }),
-    setActive: (id: string) => fetchApi(`ai-config/keys/${id}/activate`, { method: 'PATCH' }),
-    deleteKey: (id: string) => fetchApi(`ai-config/keys/${id}`, { method: 'DELETE' }),
-    getModels: () => fetchApi('ai-config/models'),
-    setActiveModel: (provider: 'gemini' | 'groq', modelId: string) =>
-        fetchApi('ai-config/models/activate', { method: 'PATCH', body: JSON.stringify({ provider, modelId }) }),
 };
 
 // Subjects
@@ -222,15 +132,6 @@ export const subjectsApi = {
     create: (formData: FormData) => fetchApiFormData('subjects', formData),
     update: (id: string, formData: FormData) => fetchApiFormData(`subjects/${id}`, formData, 'PATCH'),
     delete: (id: string) => fetchApi(`subjects/${id}`, { method: 'DELETE' }),
-};
-
-// Resources
-export const resourcesApi = {
-    getAll: () => fetchApi('resources/admin/all'),
-    getById: (id: string) => fetchApi(`resources/${id}`),
-    create: (formData: FormData) => fetchApiFormData('resources', formData),
-    update: (id: string, formData: FormData) => fetchApiFormData(`resources/${id}`, formData, 'PATCH'),
-    delete: (id: string) => fetchApi(`resources/${id}`, { method: 'DELETE' }),
 };
 
 // Lessons
@@ -250,107 +151,13 @@ export const quizzesApi = {
     delete: (id: string) => fetchApi(`quizzes/${id}`, { method: 'DELETE' }),
 };
 
-// Discounts & Coupons (Admin)
-export const discountsApi = {
-    getAll: (type?: string, isActive?: boolean) => {
-        const params = new URLSearchParams();
-        if (type) params.append('type', type);
-        if (isActive !== undefined) params.append('isActive', String(isActive));
-        const q = params.toString();
-        return fetchApi(`discounts/admin/coupons${q ? `?${q}` : ''}`);
-    },
-    getAnalytics: () => fetchApi('discounts/admin/analytics'),
-    getStats: (id: string) => fetchApi(`discounts/admin/coupons/${id}/stats`),
-    create: (data: any) => fetchApi('discounts/admin/coupons', { method: 'POST', body: JSON.stringify(data) }),
-    update: (id: string, data: any) => fetchApi(`discounts/admin/coupons/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
-    toggle: (id: string) => fetchApi(`discounts/admin/coupons/${id}/toggle`, { method: 'PATCH' }),
-    delete: (id: string) => fetchApi(`discounts/admin/coupons/${id}`, { method: 'DELETE' }),
-    generateReferral: (data: any) => fetchApi('discounts/admin/coupons/generate-referral', { method: 'POST', body: JSON.stringify(data) }),
-};
-
-// Reviews (Admin)
-export const reviewsApi = {
-    getStats: () => fetchApi('reviews/admin/stats'),
-    getAll: (params?: { page?: number; limit?: number; rating?: number; flag?: string; search?: string }) => {
-        const q = new URLSearchParams();
-        if (params?.page) q.append('page', String(params.page));
-        if (params?.limit) q.append('limit', String(params.limit));
-        if (params?.rating) q.append('rating', String(params.rating));
-        if (params?.flag) q.append('flag', params.flag);
-        if (params?.search) q.append('search', params.search);
-        const qs = q.toString();
-        return fetchApi(`reviews/admin/all${qs ? `?${qs}` : ''}`);
-    },
-    flag: (id: string, flag: string) => fetchApi(`reviews/admin/${id}/flag`, { method: 'PATCH', body: JSON.stringify({ flag }) }),
-    pin: (id: string, isPinned: boolean) => fetchApi(`reviews/admin/${id}/pin`, { method: 'PATCH', body: JSON.stringify({ isPinned }) }),
-    delete: (id: string) => fetchApi(`reviews/admin/${id}`, { method: 'DELETE' }),
-};
-
-// Universities (Admin)
-export const universitiesApi = {
-    getAll: () => fetchApi('universities'),
-    create: (data: any) => fetchApi('universities', { method: 'POST', body: JSON.stringify(data) }),
-    update: (id: string, data: any) => fetchApi(`universities/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
-    delete: (id: string) => fetchApi(`universities/${id}`, { method: 'DELETE' }),
-};
-
-// Interview Results (Admin)
-export const resultsApi = {
-    getAllAdmin: (params?: { page?: number; limit?: number; roundType?: string; search?: string }) => {
-        const q = new URLSearchParams();
-        if (params?.page) q.append('page', String(params.page));
-        if (params?.limit) q.append('limit', String(params.limit));
-        if (params?.roundType) q.append('roundType', params.roundType);
-        if (params?.search) q.append('search', params.search);
-        const qs = q.toString();
-        return fetchApi(`results/admin/all${qs ? `?${qs}` : ''}`);
-    },
-};
-
-// Jobs (Admin)
+// Jobs
 export const jobsApi = {
     getStats: () => fetchApi('jobs/admin/stats'),
     getConfig: () => fetchApi('jobs/admin/config'),
     updateConfig: (data: any) => fetchApi('jobs/admin/config', { method: 'POST', body: JSON.stringify(data) }),
     syncNow: () => fetchApi('jobs/sync-now'),
-};
-
-// Notifications (Admin)
-export const notificationsApi = {
-    sendToAll: (title: string, body: string, data?: any) =>
-        fetchApi('admin/notifications/send-all', { method: 'POST', body: JSON.stringify({ title, body, data }) }),
-    sendToUser: (userId: string, title: string, body: string, data?: any) =>
-        fetchApi(`admin/notifications/send-user/${userId}`, { method: 'POST', body: JSON.stringify({ title, body, data }) }),
-};
-
-// Company-specific interview rounds (simple CRUD)
-export const companyRoundsApi = {
-    getAllPublic: () => fetchApi('company-rounds'),
-    getAllAdmin: () => fetchApi('company-rounds/admin/all'),
-    create: (data: {
-        company: string;
-        roundType: string;
-        name?: string;
-        description?: string;
-        logoUrl?: string;
-        tags?: string[];
-        isPublished?: boolean;
-    }) => fetchApi('company-rounds', { method: 'POST', body: JSON.stringify(data) }),
-    update: (id: string, data: {
-        company?: string;
-        roundType?: string;
-        name?: string;
-        description?: string;
-        logoUrl?: string;
-        tags?: string[];
-        isPublished?: boolean;
-    }) => fetchApi(`company-rounds/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
-    uploadLogo: (id: string, file: File) => {
-        const fd = new FormData();
-        fd.append('logo', file);
-        return fetchApiFormData(`company-rounds/${id}/logo`, fd, 'POST');
-    },
-    delete: (id: string) => fetchApi(`company-rounds/${id}`, { method: 'DELETE' }),
+    syncCountry: (country: string) => fetchApi(`jobs/sync-country/${country}`),
 };
 
 // Topic interviews (Admin)

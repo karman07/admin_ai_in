@@ -63,6 +63,7 @@ export default function UniversitiesPage() {
     const [showForm, setShowForm] = useState(false);
     const [editId, setEditId] = useState<string | null>(null);
     const [form, setForm] = useState(empty());
+    const [logoFile, setLogoFile] = useState<File | null>(null);
     const [deleteId, setDeleteId] = useState<string | null>(null);
 
     const load = async () => {
@@ -84,10 +85,11 @@ export default function UniversitiesPage() {
 
     useEffect(() => { load(); }, []);
 
-    const openCreate = () => { setForm(empty()); setEditId(null); setShowForm(true); };
+    const openCreate = () => { setForm(empty()); setEditId(null); setLogoFile(null); setShowForm(true); };
     const openEdit = (u: University) => {
         setForm({ name: u.name, domain: u.domain, isActive: u.isActive, resumeLimit: u.resumeLimit, interviewLimit: u.interviewLimit, allowedFeatures: u.allowedFeatures ?? [], logoUrl: u.logoUrl ?? '', adminEmail: u.adminEmail ?? '', notes: u.notes ?? '' });
         setEditId(u._id);
+        setLogoFile(null);
         setShowForm(true);
     };
 
@@ -97,10 +99,32 @@ export default function UniversitiesPage() {
         try {
             const token = getAccessToken();
             const url = editId ? `${API_BASE}/universities/${editId}` : `${API_BASE}/universities`;
+            
+            const formData = new FormData();
+            formData.append('name', form.name);
+            formData.append('domain', form.domain);
+            formData.append('isActive', form.isActive.toString());
+            formData.append('resumeLimit', form.resumeLimit.toString());
+            formData.append('interviewLimit', form.interviewLimit.toString());
+            if (form.adminEmail) formData.append('adminEmail', form.adminEmail);
+            if (form.notes) formData.append('notes', form.notes);
+            
+            // Append allowedFeatures arrays correctly
+            form.allowedFeatures.forEach(feature => {
+                formData.append('allowedFeatures[]', feature);
+            });
+            
+            if (logoFile) {
+                formData.append('logo', logoFile);
+            } else if (form.logoUrl) {
+                // Keep the old string URL if they didn't upload a new file
+                formData.append('logoUrl', form.logoUrl);
+            }
+
             const res = await fetch(url, {
                 method: editId ? 'PATCH' : 'POST',
-                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                body: JSON.stringify(form),
+                headers: { Authorization: `Bearer ${token}` },
+                body: formData,
             });
             if (!res.ok) { const b = await res.json(); throw new Error(b.message || 'Save failed'); }
             setShowForm(false);
@@ -325,8 +349,18 @@ export default function UniversitiesPage() {
                                     <input type="number" min={0} max={200} className="form-input" value={form.interviewLimit} onChange={e => setForm(f => ({ ...f, interviewLimit: Number(e.target.value) }))} />
                                 </div>
                                 <div className="col-span-2">
-                                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Logo URL (optional)</label>
-                                    <input placeholder="https://…" className="form-input" value={form.logoUrl} onChange={e => setForm(f => ({ ...f, logoUrl: e.target.value }))} />
+                                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">University Logo</label>
+                                    <input 
+                                        type="file" 
+                                        accept="image/*" 
+                                        className="form-input text-sm text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-purple-900/50 file:text-purple-300 hover:file:bg-purple-900/80 transition" 
+                                        onChange={e => e.target.files && setLogoFile(e.target.files[0])} 
+                                    />
+                                    {form.logoUrl && !logoFile && (
+                                        <p className="mt-2 text-xs text-slate-500 flex items-center gap-2">
+                                            Current: <img src={form.logoUrl.startsWith('/') ? `${API_BASE.replace('/api', '')}${form.logoUrl}` : form.logoUrl} className="h-6 w-auto rounded border border-slate-700 bg-slate-800" alt="Current Logo" />
+                                        </p>
+                                    )}
                                 </div>
                                 <div className="col-span-2">
                                     <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Admin Email (optional)</label>

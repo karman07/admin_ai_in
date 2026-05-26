@@ -14,7 +14,6 @@ import {
     Filter,
     ChevronLeft,
     ChevronRight,
-    LogOut,
 } from 'lucide-react';
 import { resultsApi } from '../lib/api';
 
@@ -265,28 +264,13 @@ function ResultRow({ result }: { result: any }) {
                         )}
                         {tokens > 0 && (
                             <div style={{ background: 'rgba(108,99,255,0.07)', border: '1px solid rgba(108,99,255,0.15)', borderRadius: 8, padding: '7px 12px' }}>
-                                <div style={{ color: '#7c70cc', fontSize: 9, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 700, marginBottom: 3 }}>AI Context & Consumption</div>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                                        <Zap size={11} color="#a48fff" />
-                                        <span style={{ color: '#a48fff', fontSize: 12, fontWeight: 700 }}>{tokens.toLocaleString()} Total Tokens</span>
-                                        {costUsd > 0 && <span style={{ color: '#475569', fontSize: 11 }}> · ${costUsd.toFixed(4)}</span>}
-                                    </div>
-                                    <div style={{ fontSize: 10, color: '#475569', display: 'flex', gap: 8, marginLeft: 16 }}>
-                                        <span>IN: {(result.tokenUsage?.inputTokens ?? 0).toLocaleString()}</span>
-                                        <span>OUT: {(result.tokenUsage?.outputTokens ?? 0).toLocaleString()}</span>
-                                    </div>
+                                <div style={{ color: '#7c70cc', fontSize: 9, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 700, marginBottom: 3 }}>Tokens Used</div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                                    <Zap size={12} color="#a48fff" />
+                                    <span style={{ color: '#a48fff', fontSize: 12, fontWeight: 700 }}>{tokens.toLocaleString()}</span>
+                                    {costUsd > 0 && <span style={{ color: '#475569', fontSize: 11 }}> · ${costUsd.toFixed(4)}</span>}
                                 </div>
                             </div>
-                        )}
-                        {result.endReason && (
-                             <div style={{ background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: '7px 12px' }}>
-                                <div style={{ color: '#475569', fontSize: 9, textTransform: 'uppercase', letterSpacing: 1, fontWeight: 700, marginBottom: 3 }}>Exit Reason</div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#e2e8f0', fontSize: 12, fontWeight: 600 }}>
-                                    <LogOut size={12} color="#475569" />
-                                    {result.endReason.replace(/_/g, ' ')}
-                                </div>
-                             </div>
                         )}
                         {result.feedback && (
                             <div style={{ background: 'rgba(255,184,0,0.05)', border: '1px solid rgba(255,184,0,0.18)', borderRadius: 8, padding: '7px 12px', minWidth: 140 }}>

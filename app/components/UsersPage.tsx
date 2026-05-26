@@ -19,16 +19,8 @@ import {
     ChevronDown,
     ChevronUp,
     ExternalLink,
-    Pencil,
-    X,
-    Phone,
-    PhoneCall,
-    Trash2,
-    AlertTriangle,
-    UserCog,
-    CheckCircle,
 } from 'lucide-react';
-import { usersApi, subscriptionsApi, API_BASE } from '../lib/api';
+import { usersApi, API_BASE } from '../lib/api';
 
 interface UserData {
     _id: string;
@@ -38,8 +30,6 @@ interface UserData {
     company?: string;
     industry?: string;
     isEmailVerified: boolean;
-    phoneNumber?: string;
-    isPhoneVerified?: boolean;
     profileImageUrl?: string;
     bio?: string;
     location?: string;
@@ -62,7 +52,6 @@ interface UserData {
     googleId?: string;
     createdAt?: string;
     updatedAt?: string;
-    limitsNextReset?: string;
 }
 
 function timeAgo(date: string) {
@@ -103,21 +92,6 @@ export default function UsersPage() {
     const [expandedUser, setExpandedUser] = useState<string | null>(null);
     const [sortField, setSortField] = useState<'createdAt' | 'name' | 'subscriptionStatus'>('createdAt');
     const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
-    const [emailFilter, setEmailFilter] = useState<'all' | 'unverified'>('all');
-
-    // Plan edit modal state
-    const [editPlanUserId, setEditPlanUserId] = useState<string | null>(null);
-    const [availablePlans, setAvailablePlans] = useState<any[]>([]);
-    const [planForm, setPlanForm] = useState<{ planId: string; status: string; expiryDays: number }>({ planId: '', status: 'active', expiryDays: 30 });
-    const [planSaving, setPlanSaving] = useState(false);
-
-    // Role change state
-    const [roleChanging, setRoleChanging] = useState<string | null>(null); // userId
-    const [roleOpen, setRoleOpen] = useState<string | null>(null); // userId whose dropdown is open
-
-    // Delete state
-    const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
-    const [deleting, setDeleting] = useState(false);
 
     const fetchData = async () => {
         setLoading(true);
@@ -135,77 +109,6 @@ export default function UsersPage() {
         fetchData();
     }, []);
 
-    useEffect(() => {
-        subscriptionsApi.getAll().then((plans: any[]) => setAvailablePlans(plans)).catch(console.error);
-    }, []);
-
-    const openPlanModal = (u: UserData) => {
-        setPlanForm({
-            planId: u.subscriptionPlan?._id || '',
-            status: u.subscriptionStatus || 'free',
-            expiryDays: 30,
-        });
-        setEditPlanUserId(u._id);
-    };
-
-    const savePlan = async () => {
-        if (!editPlanUserId) return;
-        setPlanSaving(true);
-        try {
-            const selectedPlan = availablePlans.find((p: any) => (p.id || p._id) === planForm.planId);
-            const selectedPlanName = String(selectedPlan?.name || '').toLowerCase();
-            const isFreePlan = selectedPlanName.startsWith('free_tier') || selectedPlanName === 'free';
-            const payload = {
-                ...planForm,
-                status: !isFreePlan && planForm.status === 'free' ? 'active' : planForm.status,
-            };
-            const updated = await usersApi.updatePlan(editPlanUserId, payload);
-            setUsers(prev => prev.map(u => u._id === editPlanUserId ? { ...u, ...updated } : u));
-            setEditPlanUserId(null);
-        } catch (e: any) {
-            alert(e?.message || 'Failed to update plan');
-        } finally {
-            setPlanSaving(false);
-        }
-    };
-
-    const verifyUser = async (userId: string, field: 'isEmailVerified' | 'isPhoneVerified', value: boolean) => {
-        try {
-            const updated = await usersApi.verify(userId, { [field]: value });
-            setUsers(prev => prev.map(u => u._id === userId ? { ...u, ...updated } : u));
-        } catch (e: any) {
-            alert(e?.message || 'Failed to update verification');
-        }
-    };
-
-    const changeRole = async (userId: string, role: string) => {
-        setRoleOpen(null);
-        setRoleChanging(userId);
-        try {
-            const updated = await usersApi.setRole(userId, role);
-            setUsers(prev => prev.map(u => u._id === userId ? { ...u, ...updated } : u));
-        } catch (e: any) {
-            alert(e?.message || 'Failed to change role');
-        } finally {
-            setRoleChanging(null);
-        }
-    };
-
-    const deleteUser = async () => {
-        if (!deleteConfirmId) return;
-        setDeleting(true);
-        try {
-            await usersApi.deleteUser(deleteConfirmId);
-            setUsers(prev => prev.filter(u => u._id !== deleteConfirmId));
-            setExpandedUser(null);
-            setDeleteConfirmId(null);
-        } catch (e: any) {
-            alert(e?.message || 'Failed to delete user');
-        } finally {
-            setDeleting(false);
-        }
-    };
-
     // Filter and sort
     const filtered = users
         .filter((u) => {
@@ -215,8 +118,7 @@ export default function UsersPage() {
                 u.company?.toLowerCase().includes(search.toLowerCase()) ||
                 u.location?.toLowerCase().includes(search.toLowerCase());
             const matchStatus = statusFilter === 'all' || u.subscriptionStatus === statusFilter;
-            const matchEmail = emailFilter === 'all' || (emailFilter === 'unverified' && !u.isEmailVerified);
-            return matchSearch && matchStatus && matchEmail;
+            return matchSearch && matchStatus;
         })
         .sort((a, b) => {
             let cmp = 0;
@@ -241,8 +143,6 @@ export default function UsersPage() {
         expired: users.filter((u) => u.subscriptionStatus === 'expired').length,
         trial: users.filter((u) => u.subscriptionStatus === 'trial').length,
         verified: users.filter((u) => u.isEmailVerified).length,
-        unverified: users.filter((u) => !u.isEmailVerified).length,
-        phoneVerified: users.filter((u) => u.isPhoneVerified).length,
         admins: users.filter((u) => u.role === 'admin').length,
     };
 
@@ -320,12 +220,6 @@ export default function UsersPage() {
                         icon: <CheckCircle2 size={18} color="#00d4aa" />,
                         color: 'teal',
                     },
-                    {
-                        label: 'Unverified',
-                        value: stats.unverified,
-                        icon: <XCircle size={18} color="#fbbf24" />,
-                        color: 'amber',
-                    },
                     { label: 'Admins', value: stats.admins, icon: <Shield size={18} color="#ffa726" />, color: 'amber' },
                 ].map((stat, i) => (
                     <div
@@ -389,7 +283,7 @@ export default function UsersPage() {
                         style={{ paddingLeft: 36, width: '100%' }}
                     />
                 </div>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: 6 }}>
                     {[
                         { value: 'all', label: 'All' },
                         { value: 'active', label: 'Subscribed' },
@@ -405,14 +299,6 @@ export default function UsersPage() {
                             {f.label}
                         </button>
                     ))}
-                    <button
-                        className={`tab-btn ${emailFilter === 'unverified' ? 'active' : ''}`}
-                        onClick={() => setEmailFilter(emailFilter === 'unverified' ? 'all' : 'unverified')}
-                        style={emailFilter === 'unverified' ? {} : { borderColor: 'rgba(251,191,36,0.35)', color: '#fbbf24' }}
-                    >
-                        <XCircle size={12} style={{ display: 'inline', marginRight: 4, verticalAlign: 'middle' }} />
-                        Unverified ({stats.unverified})
-                    </button>
                 </div>
             </div>
 
@@ -453,7 +339,6 @@ export default function UsersPage() {
                                     {sortField === 'createdAt' &&
                                         (sortDir === 'asc' ? <ChevronUp size={12} style={{ display: 'inline' }} /> : <ChevronDown size={12} style={{ display: 'inline' }} />)}
                                 </th>
-                                <th>Phone</th>
                                 <th>Status</th>
                             </tr>
                         </thead>
@@ -464,11 +349,7 @@ export default function UsersPage() {
                                 return (
                                     <React.Fragment key={u._id}>
                                         <tr
-                                            style={{
-                                                cursor: 'pointer',
-                                                background: !u.isEmailVerified ? 'rgba(251,191,36,0.04)' : undefined,
-                                                borderLeft: !u.isEmailVerified ? '3px solid rgba(251,191,36,0.5)' : '3px solid transparent',
-                                            }}
+                                            style={{ cursor: 'pointer' }}
                                             onClick={() => setExpandedUser(isExpanded ? null : u._id)}
                                         >
                                             <td>
@@ -623,30 +504,6 @@ export default function UsersPage() {
                                                 </div>
                                             </td>
                                             <td>
-                                                {u.phoneNumber ? (
-                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                                        <div style={{ fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
-                                                            <Phone size={10} color="var(--muted-foreground)" />
-                                                            {u.phoneNumber}
-                                                        </div>
-                                                        {u.isPhoneVerified ? (
-                                                            <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 4, background: 'rgba(74,222,128,0.1)', color: '#4ade80', fontWeight: 700, width: 'fit-content' }}>
-                                                                ✓ Verified
-                                                            </span>
-                                                        ) : (
-                                                            <span style={{ fontSize: 10, padding: '1px 6px', borderRadius: 4, background: 'rgba(248,113,113,0.1)', color: '#f87171', fontWeight: 700, width: 'fit-content' }}>
-                                                                Unverified
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                ) : (
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                                        <XCircle size={13} color="#94a3b8" />
-                                                        <span style={{ fontSize: 11, color: '#94a3b8' }}>Not added</span>
-                                                    </div>
-                                                )}
-                                            </td>
-                                            <td>
                                                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                                     {u.isEmailVerified ? (
                                                         <CheckCircle2 size={16} color="#4ade80" />
@@ -679,7 +536,7 @@ export default function UsersPage() {
                                         {/* Expanded Row */}
                                         {isExpanded && (
                                             <tr>
-                                                <td colSpan={8} style={{ padding: 0 }}>
+                                                <td colSpan={7} style={{ padding: 0 }}>
                                                     <div
                                                         style={{
                                                             padding: '16px 24px',
@@ -819,26 +676,6 @@ export default function UsersPage() {
                                                                         </div>
                                                                     </div>
                                                                 )}
-                                                                <button
-                                                                    onClick={() => openPlanModal(u)}
-                                                                    style={{
-                                                                        marginTop: 12,
-                                                                        display: 'flex',
-                                                                        alignItems: 'center',
-                                                                        gap: 6,
-                                                                        padding: '6px 14px',
-                                                                        borderRadius: 8,
-                                                                        background: 'rgba(108,99,255,0.12)',
-                                                                        border: '1px solid rgba(108,99,255,0.3)',
-                                                                        color: '#a78bfa',
-                                                                        fontSize: 12,
-                                                                        fontWeight: 600,
-                                                                        cursor: 'pointer',
-                                                                    }}
-                                                                >
-                                                                    <Pencil size={12} />
-                                                                    Change Plan
-                                                                </button>
                                                             </div>
                                                         </div>
 
@@ -867,59 +704,13 @@ export default function UsersPage() {
                                                                 </div>
                                                                 <div>
                                                                     <span style={{ color: 'var(--muted-foreground)' }}>Role: </span>
-                                                                    {/* ── Change Role dropdown ── */}
-                                                                    <span style={{ position: 'relative', display: 'inline-block' }}>
-                                                                        <button
-                                                                            onClick={(e) => { e.stopPropagation(); setRoleOpen(roleOpen === u._id ? null : u._id); }}
-                                                                            disabled={roleChanging === u._id}
-                                                                            style={{
-                                                                                display: 'inline-flex', alignItems: 'center', gap: 5,
-                                                                                padding: '3px 10px', borderRadius: 7,
-                                                                                background: 'rgba(108,99,255,0.10)',
-                                                                                border: '1px solid rgba(108,99,255,0.25)',
-                                                                                color: u.role === 'admin' ? '#ffa726' : '#a78bfa',
-                                                                                fontWeight: 700, fontSize: 12, cursor: 'pointer',
-                                                                            }}
-                                                                        >
-                                                                            {roleChanging === u._id
-                                                                                ? <RefreshCw size={11} style={{ animation: 'spin 1s linear infinite' }} />
-                                                                                : <UserCog size={11} />}
-                                                                            {u.role}
-                                                                            <ChevronDown size={10} />
-                                                                        </button>
-                                                                        {roleOpen === u._id && (
-                                                                            <>
-                                                                                <div
-                                                                                    style={{ position: 'fixed', inset: 0, zIndex: 50 }}
-                                                                                    onClick={() => setRoleOpen(null)}
-                                                                                />
-                                                                                <div style={{
-                                                                                    position: 'absolute', top: '110%', left: 0, zIndex: 100,
-                                                                                    background: 'var(--card)', border: '1px solid var(--border)',
-                                                                                    borderRadius: 10, overflow: 'hidden', minWidth: 170,
-                                                                                    boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
-                                                                                }}>
-                                                                                    {['user', 'student', 'university_teacher', 'admin'].map(role => (
-                                                                                        <button
-                                                                                            key={role}
-                                                                                            onClick={(e) => { e.stopPropagation(); changeRole(u._id, role); }}
-                                                                                            style={{
-                                                                                                width: '100%', display: 'flex', alignItems: 'center',
-                                                                                                gap: 8, padding: '9px 14px', textAlign: 'left',
-                                                                                                background: role === u.role ? 'rgba(108,99,255,0.12)' : 'none',
-                                                                                                border: 'none',
-                                                                                                color: role === u.role ? '#a78bfa' : 'var(--foreground)',
-                                                                                                fontWeight: role === u.role ? 700 : 500, fontSize: 13,
-                                                                                                cursor: 'pointer',
-                                                                                            }}
-                                                                                        >
-                                                                                            {role === u.role && <CheckCircle size={12} style={{ color: '#a78bfa', flexShrink: 0 }} />}
-                                                                                            {role === 'university_teacher' ? 'Teacher' : role.charAt(0).toUpperCase() + role.slice(1)}
-                                                                                        </button>
-                                                                                    ))}
-                                                                                </div>
-                                                                            </>
-                                                                        )}
+                                                                    <span
+                                                                        style={{
+                                                                            fontWeight: 600,
+                                                                            color: u.role === 'admin' ? '#ffa726' : 'var(--foreground)',
+                                                                        }}
+                                                                    >
+                                                                        {u.role}
                                                                     </span>
                                                                 </div>
                                                                 <div>
@@ -933,50 +724,6 @@ export default function UsersPage() {
                                                                     <span style={{ fontWeight: 600, color: u.isEmailVerified ? '#4ade80' : '#f87171' }}>
                                                                         {u.isEmailVerified ? 'Yes' : 'No'}
                                                                     </span>
-                                                                    <button
-                                                                        onClick={() => verifyUser(u._id, 'isEmailVerified', !u.isEmailVerified)}
-                                                                        style={{
-                                                                            marginLeft: 8,
-                                                                            padding: '2px 8px',
-                                                                            borderRadius: 6,
-                                                                            fontSize: 10,
-                                                                            fontWeight: 700,
-                                                                            cursor: 'pointer',
-                                                                            border: u.isEmailVerified ? '1px solid rgba(248,113,113,0.3)' : '1px solid rgba(74,222,128,0.3)',
-                                                                            background: u.isEmailVerified ? 'rgba(248,113,113,0.08)' : 'rgba(74,222,128,0.08)',
-                                                                            color: u.isEmailVerified ? '#f87171' : '#4ade80',
-                                                                        }}
-                                                                    >
-                                                                        {u.isEmailVerified ? 'Revoke' : '✓ Verify'}
-                                                                    </button>
-                                                                </div>
-                                                                <div>
-                                                                    <span style={{ color: 'var(--muted-foreground)' }}>Phone number: </span>
-                                                                    <span style={{ fontWeight: 600 }}>{u.phoneNumber || '—'}</span>
-                                                                </div>
-                                                                <div>
-                                                                    <span style={{ color: 'var(--muted-foreground)' }}>Phone verified: </span>
-                                                                    <span style={{ fontWeight: 600, color: u.isPhoneVerified ? '#4ade80' : '#f87171' }}>
-                                                                        {u.phoneNumber ? (u.isPhoneVerified ? 'Yes' : 'No') : 'Not added'}
-                                                                    </span>
-                                                                    {u.phoneNumber && (
-                                                                        <button
-                                                                            onClick={() => verifyUser(u._id, 'isPhoneVerified', !u.isPhoneVerified)}
-                                                                            style={{
-                                                                                marginLeft: 8,
-                                                                                padding: '2px 8px',
-                                                                                borderRadius: 6,
-                                                                                fontSize: 10,
-                                                                                fontWeight: 700,
-                                                                                cursor: 'pointer',
-                                                                                border: u.isPhoneVerified ? '1px solid rgba(248,113,113,0.3)' : '1px solid rgba(74,222,128,0.3)',
-                                                                                background: u.isPhoneVerified ? 'rgba(248,113,113,0.08)' : 'rgba(74,222,128,0.08)',
-                                                                                color: u.isPhoneVerified ? '#f87171' : '#4ade80',
-                                                                            }}
-                                                                        >
-                                                                            {u.isPhoneVerified ? 'Revoke' : '✓ Verify'}
-                                                                        </button>
-                                                                    )}
                                                                 </div>
                                                                 <div>
                                                                     <span style={{ color: 'var(--muted-foreground)' }}>Joined: </span>
@@ -988,24 +735,6 @@ export default function UsersPage() {
                                                                                 day: 'numeric',
                                                                             })
                                                                             : '—'}
-                                                                    </span>
-                                                                </div>
-                                                                <div>
-                                                                    <span style={{ color: 'var(--muted-foreground)' }}>Limits reset on: </span>
-                                                                    <span style={{ fontWeight: 600 }}>
-                                                                        {u.limitsNextReset
-                                                                            ? new Date(u.limitsNextReset).toLocaleDateString('en', {
-                                                                                year: 'numeric',
-                                                                                month: 'long',
-                                                                                day: 'numeric',
-                                                                            })
-                                                                            : u.createdAt
-                                                                                ? (() => {
-                                                                                    const d = new Date(u.createdAt);
-                                                                                    const next = new Date(d.getFullYear(), d.getMonth() + 1, d.getDate());
-                                                                                    return next.toLocaleDateString('en', { year: 'numeric', month: 'long', day: 'numeric' });
-                                                                                })()
-                                                                                : '—'}
                                                                     </span>
                                                                 </div>
                                                                 {(u.skills || []).length > 0 && (
@@ -1029,21 +758,6 @@ export default function UsersPage() {
                                                                         </div>
                                                                     </div>
                                                                 )}
-                                                                {/* ── Delete User ── */}
-                                                                <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--card-border)' }}>
-                                                                    <button
-                                                                        onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(u._id); }}
-                                                                        style={{
-                                                                            display: 'inline-flex', alignItems: 'center', gap: 6,
-                                                                            padding: '6px 14px', borderRadius: 8,
-                                                                            background: 'rgba(248,113,113,0.08)',
-                                                                            border: '1px solid rgba(248,113,113,0.25)',
-                                                                            color: '#f87171', fontSize: 12, fontWeight: 700, cursor: 'pointer',
-                                                                        }}
-                                                                    >
-                                                                        <Trash2 size={12} /> Delete User
-                                                                    </button>
-                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -1069,209 +783,6 @@ export default function UsersPage() {
                     </table>
                 </div>
             )}
-        {/* Plan Change Modal */}
-        {editPlanUserId && (
-            <div
-                style={{
-                    position: 'fixed', inset: 0, zIndex: 1000,
-                    background: 'rgba(0,0,0,0.6)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}
-                onClick={(e) => { if (e.target === e.currentTarget) setEditPlanUserId(null); }}
-            >
-                <div
-                    style={{
-                        background: 'var(--card)',
-                        border: '1px solid var(--border)',
-                        borderRadius: 16,
-                        padding: 28,
-                        width: 440,
-                        maxWidth: '90vw',
-                        boxShadow: '0 24px 48px rgba(0,0,0,0.4)',
-                    }}
-                >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                        <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>Change Subscription Plan</h3>
-                        <button
-                            onClick={() => setEditPlanUserId(null)}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--muted-foreground)', padding: 4 }}
-                        >
-                            <X size={18} />
-                        </button>
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                        {/* Plan selector */}
-                        <div>
-                            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--muted-foreground)', display: 'block', marginBottom: 6 }}>Plan</label>
-                            <select
-                                value={planForm.planId}
-                                onChange={(e) => {
-                                    const selectedPlan = availablePlans.find((p: any) => (p.id || p._id) === e.target.value);
-                                    const selectedPlanName = String(selectedPlan?.name || '').toLowerCase();
-                                    const isFreePlan = selectedPlanName.startsWith('free_tier') || selectedPlanName === 'free';
-                                    setPlanForm(f => ({
-                                        ...f,
-                                        planId: e.target.value,
-                                        status: !isFreePlan && f.status === 'free' ? 'active' : f.status,
-                                    }));
-                                }}
-                                style={{
-                                    width: '100%', padding: '8px 12px', borderRadius: 8,
-                                    background: 'var(--muted)', border: '1px solid var(--border)',
-                                    color: 'var(--foreground)', fontSize: 14,
-                                }}
-                            >
-                                <option value=''>— Select a plan —</option>
-                                {availablePlans.map((p: any) => (
-                                    <option key={p.id || p._id} value={p.id || p._id}>
-                                        {p.displayName || p.name} — {formatPrice(p.price, p.currency)}/{p.type}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-
-                        {/* Status selector */}
-                        <div>
-                            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--muted-foreground)', display: 'block', marginBottom: 6 }}>Status</label>
-                            <select
-                                value={planForm.status}
-                                onChange={(e) => setPlanForm(f => ({ ...f, status: e.target.value }))}
-                                style={{
-                                    width: '100%', padding: '8px 12px', borderRadius: 8,
-                                    background: 'var(--muted)', border: '1px solid var(--border)',
-                                    color: 'var(--foreground)', fontSize: 14,
-                                }}
-                            >
-                                <option value='active'>Active</option>
-                                <option value='trial'>Trial</option>
-                                <option value='free'>Free</option>
-                                <option value='expired'>Expired</option>
-                            </select>
-                        </div>
-
-                        {/* Expiry days (shown for active/trial) */}
-                        {(planForm.status === 'active' || planForm.status === 'trial') && (
-                            <div>
-                                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--muted-foreground)', display: 'block', marginBottom: 6 }}>Expiry (days from now)</label>
-                                <input
-                                    type='number'
-                                    min={1}
-                                    max={3650}
-                                    value={planForm.expiryDays}
-                                    onChange={(e) => setPlanForm(f => ({ ...f, expiryDays: Number(e.target.value) }))}
-                                    style={{
-                                        width: '100%', padding: '8px 12px', borderRadius: 8,
-                                        background: 'var(--muted)', border: '1px solid var(--border)',
-                                        color: 'var(--foreground)', fontSize: 14, boxSizing: 'border-box',
-                                    }}
-                                />
-                            </div>
-                        )}
-
-                        <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-                            <button
-                                onClick={savePlan}
-                                disabled={planSaving || !planForm.planId}
-                                style={{
-                                    flex: 1, padding: '10px 0', borderRadius: 10,
-                                    background: planSaving || !planForm.planId ? 'rgba(108,99,255,0.3)' : '#6c63ff',
-                                    border: 'none', color: '#fff', fontWeight: 700, fontSize: 14,
-                                    cursor: planSaving || !planForm.planId ? 'not-allowed' : 'pointer',
-                                }}
-                            >
-                                {planSaving ? 'Saving…' : 'Save Changes'}
-                            </button>
-                            <button
-                                onClick={() => setEditPlanUserId(null)}
-                                style={{
-                                    padding: '10px 20px', borderRadius: 10,
-                                    background: 'var(--muted)', border: '1px solid var(--border)',
-                                    color: 'var(--foreground)', fontWeight: 600, fontSize: 14, cursor: 'pointer',
-                                }}
-                            >
-                                Cancel
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        )}
-
-        {/* \u2500\u2500 Delete Confirm Modal \u2500\u2500 */}
-        {deleteConfirmId && (() => {
-            const target = users.find(u => u._id === deleteConfirmId);
-            return (
-                <div
-                    style={{
-                        position: 'fixed', inset: 0, zIndex: 2000,
-                        background: 'rgba(0,0,0,0.7)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        backdropFilter: 'blur(6px)',
-                    }}
-                    onClick={(e) => { if (e.target === e.currentTarget) setDeleteConfirmId(null); }}
-                >
-                    <div style={{
-                        background: 'var(--card)', border: '1px solid rgba(248,113,113,0.3)',
-                        borderRadius: 16, padding: 28, width: 420, maxWidth: '90vw',
-                        boxShadow: '0 24px 48px rgba(0,0,0,0.5)',
-                    }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-                            <div style={{
-                                width: 44, height: 44, borderRadius: 12,
-                                background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.2)',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                            }}>
-                                <AlertTriangle size={22} color="#f87171" />
-                            </div>
-                            <div>
-                                <div style={{ fontWeight: 800, fontSize: 16 }}>Delete User?</div>
-                                <div style={{ fontSize: 13, color: 'var(--muted-foreground)', marginTop: 2 }}>
-                                    This action <strong style={{ color: '#f87171' }}>cannot be undone</strong>.
-                                </div>
-                            </div>
-                        </div>
-                        {target && (
-                            <div style={{
-                                background: 'rgba(248,113,113,0.06)', border: '1px solid rgba(248,113,113,0.15)',
-                                borderRadius: 10, padding: '10px 14px', marginBottom: 20,
-                            }}>
-                                <div style={{ fontWeight: 700, fontSize: 14 }}>{target.name}</div>
-                                <div style={{ fontSize: 12, color: 'var(--muted-foreground)', marginTop: 2 }}>{target.email}</div>
-                            </div>
-                        )}
-                        <div style={{ display: 'flex', gap: 10 }}>
-                            <button
-                                onClick={deleteUser}
-                                disabled={deleting}
-                                style={{
-                                    flex: 1, padding: '10px 0', borderRadius: 10,
-                                    background: deleting ? 'rgba(248,113,113,0.3)' : '#f87171',
-                                    border: 'none', color: '#fff', fontWeight: 700, fontSize: 14,
-                                    cursor: deleting ? 'not-allowed' : 'pointer',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                                }}
-                            >
-                                {deleting ? <RefreshCw size={15} style={{ animation: 'spin 1s linear infinite' }} /> : <Trash2 size={15} />}
-                                {deleting ? 'Deleting…' : 'Yes, Delete'}
-                            </button>
-                            <button
-                                onClick={() => setDeleteConfirmId(null)}
-                                disabled={deleting}
-                                style={{
-                                    padding: '10px 20px', borderRadius: 10,
-                                    background: 'var(--muted)', border: '1px solid var(--border)',
-                                    color: 'var(--foreground)', fontWeight: 600, fontSize: 14, cursor: 'pointer',
-                                }}
-                            >
-                                Cancel
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            );
-        })()}
-
         </div>
     );
 }
