@@ -27,6 +27,7 @@ import PaygPricingPage from './components/PaygPricingPage';
 import CompanyRoundsPage from './components/CompanyRoundsPage';
 import LoginPage from './components/LoginPage';
 import TopicInterviewsPage from './components/TopicInterviewsPage';
+import HackathonPage from './components/HackathonPage';
 import { getAccessToken, clearAuth } from './lib/api';
 
 const pages: Record<Page, React.ReactNode> = {
@@ -55,6 +56,7 @@ const pages: Record<Page, React.ReactNode> = {
   'ai-stats': <AIUsagePage />,
   'company-rounds': <CompanyRoundsPage />,
   'topic-interviews': <TopicInterviewsPage />,
+  hackathon: <HackathonPage />,
 };
 
 export default function Home() {

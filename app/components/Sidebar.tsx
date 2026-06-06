@@ -27,6 +27,7 @@ import {
     Bell,
     Zap,
     Database,
+    Trophy,
 } from 'lucide-react';
 
 export type Page =
@@ -54,7 +55,8 @@ export type Page =
     | 'notifications'
     | 'company-rounds'
     | 'topic-interviews'
-    | 'ai-stats';
+    | 'ai-stats'
+    | 'hackathon';
 
 const navItems: { id: Page; label: string; icon: React.ReactNode; group: string }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} />, group: 'Overview' },
@@ -82,6 +84,7 @@ const navItems: { id: Page; label: string; icon: React.ReactNode; group: string 
     { id: 'universities', label: 'Universities', icon: <GraduationCap size={18} />,   group: 'Management' },
     { id: 'university-portal', label: 'University Portal', icon: <Building2 size={18} />, group: 'Management' },
     { id: 'topic-interviews', label: 'Topic Interviews', icon: <BookOpen size={18} />, group: 'Content' },
+    { id: 'hackathon', label: 'Hackathon', icon: <Trophy size={18} />, group: 'Management' },
 ];
 
 export default function Sidebar({

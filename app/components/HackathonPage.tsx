@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
     Trophy, Upload, Users, Settings, RefreshCw, Trash2, FileSpreadsheet,
-    ToggleLeft, ToggleRight, Medal, ChevronDown, ChevronUp, ClipboardList, Plus, Mail,
+    ToggleLeft, ToggleRight, Medal, ChevronDown, ChevronUp, ClipboardList, Plus, Mail, RotateCcw,
 } from 'lucide-react';
 import { hackathonApi } from '../lib/api';
 
@@ -146,6 +146,27 @@ export default function HackathonPage() {
             setEmailTotal(prev => prev - 1);
         } catch (e: any) {
             showMsg(e.message || 'Failed to remove', 'error');
+        }
+    };
+
+    const handleResetInterview = async (email: string) => {
+        if (!confirm(`Reset interview status for ${email}? This will clear their interviewTaken flag and delete any saved result so they can retake.`)) return;
+        try {
+            await hackathonApi.resetInterview(email);
+            await Promise.all([loadEmails(), loadLeaderboard()]);
+            showMsg(`Reset successful for ${email}`, 'success');
+        } catch (e: any) {
+            showMsg(e.message || 'Failed to reset', 'error');
+        }
+    };
+
+    const handleForceSyncResult = async (email: string) => {
+        try {
+            await hackathonApi.forceSyncResult(email);
+            await loadLeaderboard();
+            showMsg(`Result synced for ${email}`, 'success');
+        } catch (e: any) {
+            showMsg(e.message || 'No interview session found for this user', 'error');
         }
     };
 
@@ -467,12 +488,22 @@ export default function HackathonPage() {
                                                 </span>
                                             </td>
                                             <td style={{ padding: '10px 12px', textAlign: 'right' }}>
-                                                <button
-                                                    onClick={() => handleRemoveEmail(e.email)}
-                                                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', padding: 4 }}
-                                                >
-                                                    <Trash2 size={14} />
-                                                </button>
+                                                <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
+                                                    <button
+                                                        onClick={() => handleResetInterview(e.email)}
+                                                        title="Reset interview (allow retake)"
+                                                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#f59e0b', padding: 4 }}
+                                                    >
+                                                        <RotateCcw size={14} />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleRemoveEmail(e.email)}
+                                                        title="Remove from list"
+                                                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', padding: 4 }}
+                                                    >
+                                                        <Trash2 size={14} />
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))}
@@ -523,8 +554,23 @@ export default function HackathonPage() {
                                                 </div>
                                             </td>
                                             <td style={{ padding: '12px' }}>
-                                                <div style={{ fontWeight: 600 }}>{r.userName}</div>
-                                                <div style={{ fontSize: 11, color: 'var(--muted-foreground)' }}>{r.userEmail}</div>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                                                    <div style={{
+                                                        width: 34, height: 34, borderRadius: 10, overflow: 'hidden', flexShrink: 0,
+                                                        background: 'rgba(108,99,255,0.12)', border: '1.5px solid rgba(108,99,255,0.2)',
+                                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                        color: '#6c63ff', fontWeight: 700, fontSize: 14,
+                                                    }}>
+                                                        {r.userImage
+                                                            ? <img src={r.userImage} alt={r.userName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                            : (r.userName || '?').charAt(0).toUpperCase()
+                                                        }
+                                                    </div>
+                                                    <div>
+                                                        <div style={{ fontWeight: 600 }}>{r.userName}</div>
+                                                        <div style={{ fontSize: 11, color: 'var(--muted-foreground)' }}>{r.userEmail}</div>
+                                                    </div>
+                                                </div>
                                             </td>
                                             <td style={{ padding: '12px', textAlign: 'center' }}>
                                                 <div style={{
